@@ -43,6 +43,20 @@ describe('chunkSections', () => {
     expect(chunks.length).toBeLessThan(10);
   });
 
+  it('labels a merged chunk with the section span, trimming the shared prefix', () => {
+    const small = (path: string) => ({ path, text: 'short body. '.repeat(8) });
+    const chunks = chunkSections('Doc', [
+      small('Ch.XI > Q. Medical Nutrition Therapy'),
+      small('Ch.XI > R. Osteopathic Manipulative Treatment'),
+      small('Ch.XI > S. Chiropractic Manipulative Treatment'),
+    ]);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]!.sectionPath).toBe(
+      'Ch.XI > Q. Medical Nutrition Therapy to S. Chiropractic Manipulative Treatment',
+    );
+    expect(chunks[0]!.text).toContain('S. Chiropractic Manipulative Treatment');
+  });
+
   it('splits oversized sections with overlap', () => {
     const big = 'alpha beta gamma delta epsilon '.repeat(400); // ~2000 words
     const chunks = chunkSections('Doc', [{ path: 'big', text: big }]);

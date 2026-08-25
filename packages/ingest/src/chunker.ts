@@ -74,42 +74,56 @@ export function chunkSections(documentTitle: string, sections: Section[]): Chunk
   const chunks: Chunk[] = [];
   let ordinal = 0;
 
-  let bufferPath: string | null = null;
+  let bufferPaths: string[] = [];
   let bufferText = '';
 
+  // A chunk that merged several short sections is labeled with the span, for
+  // example "Ch.XI > Q. Medical Nutrition Therapy to S. Chiropractic Manipulative
+  // Treatment", so citations name the real section instead of only the first one.
+  const mergedLabel = (): string => {
+    const first = bufferPaths[0] ?? '';
+    if (bufferPaths.length === 1) return first;
+    const last = bufferPaths[bufferPaths.length - 1] ?? '';
+    const cut = last.lastIndexOf(' > ');
+    const lastLeaf =
+      cut >= 0 && last.slice(0, cut + 3) === first.slice(0, cut + 3) ? last.slice(cut + 3) : last;
+    return `${first} to ${lastLeaf}`;
+  };
+
   const flush = (): void => {
-    if (bufferPath === null || bufferText.trim().length === 0) {
-      bufferPath = null;
+    if (bufferPaths.length === 0 || bufferText.trim().length === 0) {
+      bufferPaths = [];
       bufferText = '';
       return;
     }
+    const label = mergedLabel();
     for (const part of splitLongText(bufferText.trim())) {
-      const text = `${documentTitle} > ${bufferPath}\n\n${part}`;
+      const text = `${documentTitle} > ${label}\n\n${part}`;
       chunks.push({
-        sectionPath: bufferPath,
+        sectionPath: label,
         ordinal: ordinal++,
         text,
         tokenCount: estimateTokens(text),
         codesMentioned: extractCodes(part),
       });
     }
-    bufferPath = null;
+    bufferPaths = [];
     bufferText = '';
   };
 
   for (const section of sections) {
     const sectionTokens = estimateTokens(section.text);
-    if (bufferPath !== null) {
+    if (bufferPaths.length > 0) {
       const bufferedTokens = estimateTokens(bufferText);
       if (bufferedTokens >= TARGET_MIN || bufferedTokens + sectionTokens > TARGET_MAX) {
         flush();
       }
     }
-    if (bufferPath === null) {
-      bufferPath = section.path;
+    if (bufferPaths.length === 0) {
+      bufferPaths = [section.path];
       bufferText = section.text;
     } else {
-      // Keep the first section's path when merging small neighbors.
+      bufferPaths.push(section.path);
       bufferText += `\n\n${section.path}\n${section.text}`;
     }
   }
