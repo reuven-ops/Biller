@@ -105,9 +105,11 @@ export function layout(opts: {
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        ${opts.refreshSeconds
-          ? raw(`<meta http-equiv="refresh" content="${Math.floor(opts.refreshSeconds)}" />`)
-          : null}
+        ${
+          opts.refreshSeconds
+            ? raw(`<meta http-equiv="refresh" content="${Math.floor(opts.refreshSeconds)}" />`)
+            : null
+        }
         <title>${opts.title} - CM Coding Advisor</title>
         <style>
           ${raw(STYLE)}
@@ -124,15 +126,17 @@ export function layout(opts: {
                 >`,
             )}
           </nav>
-          ${opts.user
-            ? html`<span class="who"
-                >${opts.user.email} (${opts.user.role})
-                <form class="inline" method="post" action="/logout">
-                  <input type="hidden" name="csrf" value="${opts.csrf ?? ''}" />
-                  <button class="quiet" type="submit">Sign out</button>
-                </form></span
-              >`
-            : null}
+          ${
+            opts.user
+              ? html`<span class="who"
+                  >${opts.user.email} (${opts.user.role})
+                  <form class="inline" method="post" action="/logout">
+                    <input type="hidden" name="csrf" value="${opts.csrf ?? ''}" />
+                    <button class="quiet" type="submit">Sign out</button>
+                  </form></span
+                >`
+              : null
+          }
         </header>
         <main>${opts.body}</main>
       </body>

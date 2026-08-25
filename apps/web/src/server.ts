@@ -5,8 +5,21 @@ import { createServer } from 'node:http';
 import { getPool, intEnv, loadEnv, requireEnv } from '@advisor/db';
 import { csrfTokenFor, csrfValid, loadSessionUser, SESSION_COOKIE, type WebUser } from './auth.js';
 import { html, layout } from './html.js';
-import { parseCookies, readForm, Router, sendHtml, redirect, type Ctx, type Handler } from './http.js';
+import {
+  parseCookies,
+  readForm,
+  Router,
+  sendHtml,
+  redirect,
+  type Ctx,
+  type Handler,
+} from './http.js';
 import { registerAuthRoutes } from './routes/auth-routes.js';
+import { registerAskRoutes } from './routes/ask-routes.js';
+import { registerHistoryRoutes } from './routes/history-routes.js';
+import { registerHelpRoutes } from './routes/help-routes.js';
+import { registerSourcesRoutes } from './routes/sources-routes.js';
+import { registerAdminRoutes } from './routes/admin-routes.js';
 
 loadEnv();
 requireEnv('SESSION_SECRET'); // fail fast: sessions and CSRF depend on it
@@ -63,26 +76,32 @@ export function authed(minRole: 'biller' | 'lead' | 'admin', handler: AuthedHand
 
 const router = new Router();
 registerAuthRoutes(router, pool);
+registerAskRoutes(router, pool, authed);
+registerHistoryRoutes(router, pool, authed);
+registerHelpRoutes(router, authed);
+registerSourcesRoutes(router, pool, authed);
+registerAdminRoutes(router, pool, authed);
 
-// M3.1 shell: the authenticated landing page. M3.2 replaces this with the Ask page.
-router.get('/', (ctx) =>
-  authed('biller', (actx) => {
+// Call notes arrive with Phase 4; the nav link gets an honest placeholder until then.
+router.get(
+  '/notes',
+  authed('biller', (ctx) => {
     sendHtml(
-      actx,
+      ctx,
       200,
       layout({
-        title: 'Home',
-        user: actx.user,
-        active: '/',
-        csrf: actx.csrf,
-        body: html`<h1>Signed in</h1>
+        title: 'Call notes',
+        user: ctx.user,
+        active: '/notes',
+        csrf: ctx.csrf,
+        body: html`<h1>Call notes</h1>
           <div class="notice">
-            The Ask page arrives with milestone M3.2. Auth, sessions, roles, and the shell are
-            live.
+            Call notes arrive with Phase 4: the entry form, lead approval, expiry tracking, and
+            citation of notes as tier 6 evidence.
           </div>`,
       }),
     );
-  })(ctx),
+  }),
 );
 
 const server = createServer((req, res) => {

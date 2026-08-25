@@ -23,9 +23,10 @@ export async function runDueCouriers(
   const due = await pool.query<{ id: string }>(
     `SELECT id FROM sources
      WHERE enabled
-       AND cadence_days > 0
-       AND (last_success_at IS NULL
-            OR last_success_at < now() - cadence_days * interval '1 day')
+       AND (run_requested_at IS NOT NULL
+            OR (cadence_days > 0
+                AND (last_success_at IS NULL
+                     OR last_success_at < now() - cadence_days * interval '1 day')))
      ORDER BY id`,
   );
   const ran: string[] = [];
@@ -34,6 +35,7 @@ export async function runDueCouriers(
     if (!courier) continue; // registered in a later phase
     const outcome = await runCourier(pool, courier);
     if (outcome.ran) {
+      await pool.query('UPDATE sources SET run_requested_at = NULL WHERE id = $1', [row.id]);
       ran.push(row.id);
       onRun?.(row.id, { status: outcome.status, rowsWritten: outcome.rowsWritten });
     }

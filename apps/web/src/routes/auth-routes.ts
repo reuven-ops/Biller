@@ -106,7 +106,11 @@ export function registerAuthRoutes(router: Router, pool: Pool): void {
   router.get('/invite/:token', async (ctx) => {
     const invite = await findInvite(pool, ctx.params['token'] ?? '');
     if (!invite) {
-      sendHtml(ctx, 404, layout({ title: 'Invite', body: html`<p>Invite not found or expired.</p>` }));
+      sendHtml(
+        ctx,
+        404,
+        layout({ title: 'Invite', body: html`<p>Invite not found or expired.</p>` }),
+      );
       return;
     }
     sendHtml(ctx, 200, invitePage(ctx, { email: invite.email }));
@@ -115,7 +119,11 @@ export function registerAuthRoutes(router: Router, pool: Pool): void {
   router.post('/invite/:token', async (ctx) => {
     const invite = await findInvite(pool, ctx.params['token'] ?? '');
     if (!invite) {
-      sendHtml(ctx, 404, layout({ title: 'Invite', body: html`<p>Invite not found or expired.</p>` }));
+      sendHtml(
+        ctx,
+        404,
+        layout({ title: 'Invite', body: html`<p>Invite not found or expired.</p>` }),
+      );
       return;
     }
     const password = ctx.form['password'] ?? '';
