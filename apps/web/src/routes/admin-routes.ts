@@ -11,6 +11,7 @@ import {
   promptVersion,
 } from '@advisor/core';
 import { importRemitCsv } from '@advisor/ingest';
+import { importContract } from '../contracts-store.js';
 import { auditAdminAction, createInvite } from '../auth.js';
 import { html, layout } from '../html.js';
 import { redirect, sendHtml, type Handler, type Router } from '../http.js';
@@ -246,6 +247,84 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
               }
             </div>
 
+            <h2>Clients and contracts</h2>
+            <div class="card">
+              ${
+                ctx.query.get('contract')
+                  ? html`<div class="${ctx.query.get('contract_ok') === '1' ? 'notice' : 'error'}">
+                      ${ctx.query.get('contract')}
+                    </div>`
+                  : ''
+              }
+              <form method="post" action="/admin/clients" class="inline">
+                <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                <label for="cl-name">New client name</label>
+                <input id="cl-name" name="name" type="text" required />
+                <p><button type="submit" class="quiet">Create client</button></p>
+              </form>
+              ${
+                clients.rows.length
+                  ? html`<form
+                      method="post"
+                      action="/admin/contracts"
+                      enctype="multipart/form-data"
+                    >
+                      <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                      <div class="row">
+                        <div>
+                          <label for="ct-client">Client</label>
+                          <select id="ct-client" name="client_id">
+                            ${clients.rows.map((c) => html`<option value="${c.id}">${c.name}</option>`)}
+                          </select>
+                        </div>
+                        <div>
+                          <label for="ct-payer">Payer</label>
+                          <input id="ct-payer" name="payer" type="text" required />
+                        </div>
+                        <div>
+                          <label for="ct-type">Type</label>
+                          <select id="ct-type" name="contract_type">
+                            ${['agreement', 'fee_schedule', 'amendment'].map(
+                              (t) => html`<option value="${t}">${t}</option>`,
+                            )}
+                          </select>
+                        </div>
+                      </div>
+                      <div class="row">
+                        <div>
+                          <label for="ct-title">Title</label>
+                          <input id="ct-title" name="title" type="text" required />
+                        </div>
+                        <div>
+                          <label for="ct-eff">Effective date</label>
+                          <input id="ct-eff" name="effective_date" type="date" />
+                        </div>
+                        <div>
+                          <label for="ct-term">Termination date</label>
+                          <input id="ct-term" name="termination_date" type="date" />
+                        </div>
+                      </div>
+                      <label for="ct-file"
+                        >Contract file (PDF, DOCX; fee schedules also CSV or XLSX)</label
+                      >
+                      <input
+                        id="ct-file"
+                        name="contract"
+                        type="file"
+                        accept=".pdf,.docx,.csv,.xlsx"
+                        required
+                      />
+                      <p><button type="submit">Upload contract</button></p>
+                      <p class="muted">
+                        Contracts store as tier 5 scoped to the client; machine readable fee
+                        schedules also fill client_fee_schedule. Only assigned users can retrieve
+                        them.
+                      </p>
+                    </form>`
+                  : html`<p class="muted">Create a client to upload its contracts.</p>`
+              }
+            </div>
+
             <h2>Remittance import</h2>
             <div class="card">
               ${
@@ -279,17 +358,17 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
                       </thead>
                       <tbody>
                         ${imports.rows.map(
-                        (r) => html`
-                          <tr>
-                            <td>${r.imported_at.toISOString().slice(0, 16).replace('T', ' ')}</td>
-                            <td>${r.filename}</td>
-                            <td>${r.rows_in}</td>
-                            <td>${r.rows_rejected}</td>
-                            <td>${r.cells_written}</td>
-                            <td>${r.email ?? ''}</td>
-                          </tr>
-                        `,
-                      )}
+                          (r) => html`
+                            <tr>
+                              <td>${r.imported_at.toISOString().slice(0, 16).replace('T', ' ')}</td>
+                              <td>${r.filename}</td>
+                              <td>${r.rows_in}</td>
+                              <td>${r.rows_rejected}</td>
+                              <td>${r.cells_written}</td>
+                              <td>${r.email ?? ''}</td>
+                            </tr>
+                          `,
+                        )}
                       </tbody>
                     </table>`
                   : ''
@@ -330,44 +409,44 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
                       </thead>
                       <tbody>
                         ${glosses.rows.map(
-                        (g) => html`
-                          <tr>
-                            <td>${g.code_type.toUpperCase()} ${g.code}</td>
-                            <td>${g.gloss}</td>
-                            <td>
-                              <span class="pill">${g.status}</span>
-                              ${g.needs_review ? html`<span class="pill" style="background:#fff3cd">source changed</span>` : ''}
-                            </td>
-                            <td class="muted">${g.evidence_titles}</td>
-                            <td>
-                              ${
-                                g.status === 'draft' || g.needs_review
-                                  ? html`<form
-                                      class="inline"
-                                      method="post"
-                                      action="/admin/glosses/${g.id}/approve"
-                                    >
-                                      <input type="hidden" name="csrf" value="${ctx.csrf}" />
-                                      <button class="quiet" type="submit">Approve</button>
-                                    </form>`
-                                  : ''
-                              }
-                              ${
-                                g.status !== 'retired'
-                                  ? html`<form
-                                      class="inline"
-                                      method="post"
-                                      action="/admin/glosses/${g.id}/retire"
-                                    >
-                                      <input type="hidden" name="csrf" value="${ctx.csrf}" />
-                                      <button class="quiet" type="submit">Retire</button>
-                                    </form>`
-                                  : ''
-                              }
-                            </td>
-                          </tr>
-                        `,
-                      )}
+                          (g) => html`
+                            <tr>
+                              <td>${g.code_type.toUpperCase()} ${g.code}</td>
+                              <td>${g.gloss}</td>
+                              <td>
+                                <span class="pill">${g.status}</span>
+                                ${g.needs_review ? html`<span class="pill" style="background:#fff3cd">source changed</span>` : ''}
+                              </td>
+                              <td class="muted">${g.evidence_titles}</td>
+                              <td>
+                                ${
+                                  g.status === 'draft' || g.needs_review
+                                    ? html`<form
+                                        class="inline"
+                                        method="post"
+                                        action="/admin/glosses/${g.id}/approve"
+                                      >
+                                        <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                                        <button class="quiet" type="submit">Approve</button>
+                                      </form>`
+                                    : ''
+                                }
+                                ${
+                                  g.status !== 'retired'
+                                    ? html`<form
+                                        class="inline"
+                                        method="post"
+                                        action="/admin/glosses/${g.id}/retire"
+                                      >
+                                        <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                                        <button class="quiet" type="submit">Retire</button>
+                                      </form>`
+                                    : ''
+                                }
+                              </td>
+                            </tr>
+                          `,
+                        )}
                       </tbody>
                     </table>`
                   : html`<p class="muted">No glosses yet. Import remit data, then draft.</p>`
@@ -377,6 +456,53 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
             <p class="muted">Eval run management arrives with Phase 6 hardening.</p>
           `,
         }),
+      );
+    }),
+  );
+
+  router.post(
+    '/admin/clients',
+    authed('admin', async (ctx) => {
+      const name = (ctx.form['name'] ?? '').trim();
+      if (name) {
+        await pool.query(
+          'INSERT INTO clients (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM clients WHERE name = $1)',
+          [name],
+        );
+        await auditAdminAction(pool, ctx.user.id, 'client_created', { name });
+      }
+      redirect(ctx, '/admin');
+    }),
+  );
+
+  router.post(
+    '/admin/contracts',
+    authed('admin', async (ctx) => {
+      const file = ctx.files.find((f) => f.field === 'contract');
+      if (!file) {
+        redirect(ctx, `/admin?contract=${encodeURIComponent('Choose a contract file.')}`);
+        return;
+      }
+      const outcome = await importContract(pool, {
+        clientId: ctx.form['client_id'] ?? '',
+        payer: (ctx.form['payer'] ?? '').trim(),
+        title: (ctx.form['title'] ?? '').trim() || file.filename,
+        contractType: (ctx.form['contract_type'] ?? 'agreement') as
+          'agreement' | 'fee_schedule' | 'amendment',
+        effectiveDate: ctx.form['effective_date'] || null,
+        terminationDate: ctx.form['termination_date'] || null,
+        portalPath: null,
+        filename: file.filename,
+        data: file.data,
+      });
+      await auditAdminAction(pool, ctx.user.id, 'contract_upload', {
+        client: ctx.form['client_id'],
+        title: ctx.form['title'],
+        ok: outcome.ok,
+      });
+      redirect(
+        ctx,
+        `/admin?contract_ok=${outcome.ok ? '1' : '0'}&contract=${encodeURIComponent(outcome.message)}`,
       );
     }),
   );
