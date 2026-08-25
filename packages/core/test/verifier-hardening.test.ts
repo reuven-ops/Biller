@@ -184,6 +184,62 @@ describe('verifier hardening', () => {
     expect(out.finalAnswer.abstain_reason).toContain('verification pass');
   });
 
+  it('a partial bottom line lowers confidence instead of abstaining', async () => {
+    const { registry, id } = makeRegistry();
+    const llm = new StubLlmClient();
+    llm.enqueue((req) => {
+      void req;
+      return Promise.resolve<LlmResponse>({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              items: [
+                { kind: 'bottom_line', index: 0, verdict: 'partial', note: '' },
+                { kind: 'code', index: 0, verdict: 'supported', note: '' },
+                { kind: 'published_rule', index: 0, verdict: 'supported', note: '' },
+              ],
+            }),
+          },
+        ],
+        stopReason: 'end_turn',
+        usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      });
+    });
+    const out = await verifyAnswer(llm, 'q', answerWith(modelWrittenCitation(id)), registry, {
+      dos: '2026-08-25',
+      userClientIds: [],
+    });
+    expect(out.finalAnswer.abstained).toBe(false);
+    expect(out.finalAnswer.confidence.level).toBe('medium');
+    expect(out.finalAnswer.confidence.rationale).toContain('partially supported');
+  });
+
+  it('an unsupported bottom line still abstains', async () => {
+    const { registry, id } = makeRegistry();
+    const llm = new StubLlmClient();
+    llm.enqueue((req) => {
+      void req;
+      return Promise.resolve<LlmResponse>({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              items: [{ kind: 'bottom_line', index: 0, verdict: 'unsupported', note: '' }],
+            }),
+          },
+        ],
+        stopReason: 'end_turn',
+        usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      });
+    });
+    const out = await verifyAnswer(llm, 'q', answerWith(modelWrittenCitation(id)), registry, {
+      dos: '2026-08-25',
+      userClientIds: [],
+    });
+    expect(out.finalAnswer.abstained).toBe(true);
+  });
+
   it('keeps running without verdicts in stub mode', async () => {
     const { registry, id } = makeRegistry();
     const llm = new StubLlmClient(); // empty queue returns non-JSON stub text

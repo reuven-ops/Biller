@@ -250,17 +250,26 @@ export async function verifyAnswer(
   // Core elements: codes, modifiers, bottom line.
   const codeUnsupported = unsupportedAt('code');
   const bottomLineItem = (graded ?? []).find((i) => i.kind === 'bottom_line');
+  // Brief rule 1: UNSUPPORTED core elements force abstention. A partial verdict on
+  // the bottom line is not unsupported; it lowers confidence instead of abstaining.
   const coreFailure =
     (!answer.abstained &&
       (verdictsUnavailable ||
         codeUnsupported.size > 0 ||
-        (bottomLineItem && bottomLineItem.verdict !== 'supported') ||
+        (bottomLineItem && bottomLineItem.verdict === 'unsupported') ||
         answer.codes.some((c) => !hasValidCite(c.citations)) ||
         (invalidCitations.length > 0 &&
           allCitations(answer).length > 0 &&
           invalidCitations.length === allCitations(answer).length) ||
         tierViolations.some((v) => v.startsWith('codes[')))) ||
     clientViolations.length > 0;
+
+  if (!coreFailure && bottomLineItem?.verdict === 'partial' && final.confidence.level === 'high') {
+    final.confidence = {
+      level: 'medium',
+      rationale: `${final.confidence.rationale} The verifier graded the bottom line as only partially supported by the quoted evidence.`,
+    };
+  }
 
   let abstainedByVerifier = false;
   if (coreFailure) {
@@ -270,8 +279,8 @@ export async function verifyAnswer(
       reasons.push('the verification pass could not be completed, so the answer is withheld');
     if (codeUnsupported.size > 0)
       reasons.push('a code or modifier is not supported by the cited evidence');
-    if (bottomLineItem && bottomLineItem.verdict !== 'supported')
-      reasons.push('the bottom line is not fully supported by the cited evidence');
+    if (bottomLineItem && bottomLineItem.verdict === 'unsupported')
+      reasons.push('the bottom line is not supported by the cited evidence');
     if (invalidCitations.length > 0)
       reasons.push('citations reference evidence not retrieved in this run');
     if (clientViolations.length > 0)
