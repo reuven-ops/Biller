@@ -8,10 +8,11 @@ import {
 } from '../src/config.js';
 
 describe('config loaders', () => {
-  it('loads the 20 sources from brief section 6', async () => {
+  it('loads the 20 sources from brief section 6 plus cms_remit_guides (D14)', async () => {
     const sources = await loadSources();
-    expect(sources).toHaveLength(20);
+    expect(sources).toHaveLength(21);
     const ids = sources.map((s) => s.id);
+    expect(ids).toContain('cms_remit_guides');
     for (const id of [
       'cms_mcd',
       'cms_ncci_ptp',
