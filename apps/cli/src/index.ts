@@ -30,6 +30,11 @@ switch (command) {
     await runReportCommand();
     break;
   }
+  case 'users': {
+    const { runUsersCommand } = await import('./commands/users.js');
+    await runUsersCommand(rest);
+    break;
+  }
   case 'freshness': {
     const { runFreshnessCommand } = await import('./commands/freshness.js');
     await runFreshnessCommand();

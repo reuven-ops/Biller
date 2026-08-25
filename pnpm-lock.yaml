@@ -48,12 +48,25 @@ importers:
       '@advisor/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest
+      '@advisor/web':
+        specifier: workspace:*
+        version: link:../web
 
   apps/web:
     dependencies:
+      '@advisor/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@advisor/db':
         specifier: workspace:*
         version: link:../../packages/db
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.4
+        version: 8.23.1
+      pg:
+        specifier: ^8.16.3
+        version: 8.23.0
 
   evals:
     dependencies:

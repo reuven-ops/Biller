@@ -9,6 +9,7 @@
   "dependencies": {
     "@advisor/core": "workspace:*",
     "@advisor/db": "workspace:*",
-    "@advisor/ingest": "workspace:*"
+    "@advisor/ingest": "workspace:*",
+    "@advisor/web": "workspace:*"
   }
 }

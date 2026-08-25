@@ -1,11 +1,27 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 
 let loaded = false;
 
+/** Nearest .env walking up from cwd, so workspace-filtered runs find the root file. */
+function findDotenv(): string | undefined {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i += 1) {
+    const candidate = join(dir, '.env');
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
 /** Loads .env once. Values already present in the process environment win. */
 export function loadEnv(): void {
   if (!loaded) {
-    loadDotenv({ quiet: true });
+    const path = findDotenv();
+    loadDotenv(path ? { path, quiet: true } : { quiet: true });
     loaded = true;
   }
 }
