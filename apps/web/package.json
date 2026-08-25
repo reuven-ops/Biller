@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@advisor/db": "workspace:*",
-    "@advisor/core": "workspace:*"
+    "@advisor/core": "workspace:*",
+    "@advisor/ingest": "workspace:*"
   },
   "main": "src/index.ts",
   "devDependencies": {

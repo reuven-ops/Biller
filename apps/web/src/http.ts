@@ -12,6 +12,7 @@ export interface Ctx {
   params: Record<string, string>;
   cookies: Record<string, string>;
   form: Record<string, string>;
+  files: UploadedFile[];
 }
 
 export type Handler = (ctx: Ctx) => Promise<void> | void;
@@ -23,6 +24,14 @@ interface Route {
 }
 
 const MAX_FORM_BYTES = 64 * 1024;
+const MAX_MULTIPART_BYTES = 25 * 1024 * 1024;
+
+export interface UploadedFile {
+  field: string;
+  filename: string;
+  contentType: string;
+  data: Buffer;
+}
 
 export function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -52,6 +61,62 @@ export async function readForm(req: IncomingMessage): Promise<Record<string, str
   const out: Record<string, string> = {};
   for (const [k, v] of params) out[k] = v;
   return out;
+}
+
+/**
+ * Minimal multipart/form-data parser for the upload forms (contracts, remit CSVs,
+ * note attachments). Whole-body in memory with a 25 MB cap; fields land in
+ * ctx.form and files in ctx.files.
+ */
+export async function readMultipart(
+  req: IncomingMessage,
+): Promise<{ form: Record<string, string>; files: UploadedFile[] }> {
+  const type = String(req.headers['content-type'] ?? '');
+  const boundaryMatch = /boundary=(?:"([^"]+)"|([^;]+))/.exec(type);
+  const boundary = boundaryMatch?.[1] ?? boundaryMatch?.[2];
+  if (!boundary) return { form: {}, files: [] };
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buf = chunk as Buffer;
+    size += buf.length;
+    if (size > MAX_MULTIPART_BYTES) throw new Error('upload too large (25 MB cap)');
+    chunks.push(buf);
+  }
+  const body = Buffer.concat(chunks);
+  const delim = Buffer.from(`--${boundary}`);
+  const form: Record<string, string> = {};
+  const files: UploadedFile[] = [];
+  let pos = body.indexOf(delim);
+  while (pos >= 0) {
+    const next = body.indexOf(delim, pos + delim.length);
+    if (next < 0) break;
+    // Part = headers + CRLFCRLF + content + CRLF before the next delimiter.
+    const part = body.subarray(pos + delim.length + 2, next - 2);
+    const headerEnd = part.indexOf('\r\n\r\n');
+    if (headerEnd >= 0) {
+      const headers = part.subarray(0, headerEnd).toString('utf8');
+      const content = part.subarray(headerEnd + 4);
+      const nameMatch = /name="([^"]*)"/.exec(headers);
+      const fileMatch = /filename="([^"]*)"/.exec(headers);
+      const typeMatch = /content-type:\s*([^\r\n]+)/i.exec(headers);
+      const field = nameMatch?.[1] ?? '';
+      if (fileMatch !== null) {
+        if (fileMatch[1]) {
+          files.push({
+            field,
+            filename: fileMatch[1],
+            contentType: (typeMatch?.[1] ?? 'application/octet-stream').trim(),
+            data: Buffer.from(content),
+          });
+        }
+      } else if (field) {
+        form[field] = content.toString('utf8');
+      }
+    }
+    pos = next;
+  }
+  return { form, files };
 }
 
 export class Router {

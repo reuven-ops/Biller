@@ -63,6 +63,9 @@ importers:
       '@advisor/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@advisor/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
     devDependencies:
       '@types/pg':
         specifier: ^8.15.4

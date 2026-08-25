@@ -8,6 +8,7 @@ import { html, layout } from './html.js';
 import {
   parseCookies,
   readForm,
+  readMultipart,
   Router,
   sendHtml,
   redirect,
@@ -20,6 +21,7 @@ import { registerHistoryRoutes } from './routes/history-routes.js';
 import { registerHelpRoutes } from './routes/help-routes.js';
 import { registerSourcesRoutes } from './routes/sources-routes.js';
 import { registerAdminRoutes } from './routes/admin-routes.js';
+import { registerNotesRoutes } from './routes/notes-routes.js';
 
 loadEnv();
 requireEnv('SESSION_SECRET'); // fail fast: sessions and CSRF depend on it
@@ -81,28 +83,7 @@ registerHistoryRoutes(router, pool, authed);
 registerHelpRoutes(router, authed);
 registerSourcesRoutes(router, pool, authed);
 registerAdminRoutes(router, pool, authed);
-
-// Call notes arrive with Phase 4; the nav link gets an honest placeholder until then.
-router.get(
-  '/notes',
-  authed('biller', (ctx) => {
-    sendHtml(
-      ctx,
-      200,
-      layout({
-        title: 'Call notes',
-        user: ctx.user,
-        active: '/notes',
-        csrf: ctx.csrf,
-        body: html`<h1>Call notes</h1>
-          <div class="notice">
-            Call notes arrive with Phase 4: the entry form, lead approval, expiry tracking, and
-            citation of notes as tier 6 evidence.
-          </div>`,
-      }),
-    );
-  }),
-);
+registerNotesRoutes(router, pool, authed);
 
 const server = createServer((req, res) => {
   void (async () => {
@@ -116,6 +97,7 @@ const server = createServer((req, res) => {
       params: {},
       cookies: parseCookies(req.headers.cookie),
       form: {},
+      files: [],
     };
     try {
       if (ctx.path === '/healthz') {
@@ -127,7 +109,16 @@ const server = createServer((req, res) => {
         res.end(JSON.stringify({ ok: dbRes }));
         return;
       }
-      if (ctx.method === 'POST') ctx.form = await readForm(req);
+      if (ctx.method === 'POST') {
+        const type = String(req.headers['content-type'] ?? '');
+        if (type.startsWith('multipart/form-data')) {
+          const parsed = await readMultipart(req);
+          ctx.form = parsed.form;
+          ctx.files = parsed.files;
+        } else {
+          ctx.form = await readForm(req);
+        }
+      }
       const match = router.match(ctx.method, ctx.path);
       if (!match) {
         sendHtml(ctx, 404, layout({ title: 'Not found', body: html`<p>Page not found.</p>` }));
