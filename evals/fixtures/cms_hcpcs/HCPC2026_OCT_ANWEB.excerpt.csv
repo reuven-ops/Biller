@@ -1,0 +1,36 @@
+HCPC,SEQNUM,RECID,LONG DESCRIPTION,SHORT DESCRIPTION,PRICE1,PRICE2,PRICE3,PRICE4,MULT_PI,CIM1,CIM2,CIM3,MCM1,MCM2,MCM3,STATUTE,LABCERT1,LABCERT2,LABCERT3,LABCERT4,LABCERT5,LABCERT6,LABCERT7,LABCERT8,XREF1,XREF2,XREF3,XREF4,XREF5,COV,ASC_GRP,ASC_DT,OPPS,OPPS_PI,OPPS_DT,PROCNOTE,BETOS,TOS1,TOS2,TOS3,TOS4,TOS5,ANEST_BU,ADD DT,ACT EFF DT,TERM DT,ACTION CD
+   A1,0010,7,Dressing for one wound,Dressing for one wound,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A2,0010,7,Dressing for two wounds,Dressing for two wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A3,0010,7,Dressing for three wounds,Dressing for three wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A4,0010,7,Dressing for four wounds,Dressing for four wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A5,0010,7,Dressing for five wounds,Dressing for five wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A6,0010,7,Dressing for six wounds,Dressing for six wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A7,0010,7,Dressing for seven wounds,Dressing for seven wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A8,0010,7,Dressing for eight wounds,Dressing for eight wounds,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   A9,0010,7,Dressing for nine or more wounds,Dressing for 9 or more wound,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20020701,20020701,,N
+   AA,0010,7,Anesthesia services performed personally by anesthesiologist,Anesthesia perf by anesgst,,,,,,,,,3350.5,,,,,,,,,,,,,,,,,D,,,,,,,,,,,,,,19840101,20010101,,N
+   AB,0010,7,"Audiology service furnished personally by an audiologist without a physician/npp order for non-acute hearing assessment unrelated to disequilibrium, or hearing aids, or examinations for the purpose of prescribing, fitting, or changing hearing aids; service may be performed once every 12 months, per beneficiary",Aud svs w/o order evry 12mo,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20230101,20230101,,N
+   AC,0010,7,"Initial onboarding support payment for access beneficiary enrollment, device/app setup, and care coordination activities; first month only; once per beneficiary per track",Co-mgmt mod - onboarding,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20260701,20260701,,N
+   AD,0010,7,Medical supervision by a physician: more than four concurrent anesthesia procedures,"Md supervision, >4 anes proc",,,,,,,,,3350.5,,,,,,,,,,,,,,,,,D,,,,,,,,,,,,,,19840101,20010101,,N
+   AE,0010,7,Registered dietician,Registered dietician,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20050101,20050101,,N
+   AF,0010,7,Specialty physician,Specialty physician,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20050101,20050101,,N
+   AG,0010,7,Primary physician,Primary physician,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20050101,20050101,,N
+   AH,0010,7,Clinical psychologist,Clinical psychologist,,,,,,,,,2150,5112,,,,,,,,,,,,,,,,D,,,,,,,,,,,,,,19910101,19970101,,N
+   AI,0010,7,Principal physician of record,Principal physician of rec,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20100101,20100101,,N
+   AJ,0010,7,Clinical social worker,Clinical social worker,,,,,,,,,2152,5113,,,,,,,,,,,,,,,,D,,,,,,,,,,,,,,19910101,19970101,,N
+   AK,0010,7,Non participating physician,Non participating physician,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20050101,20050101,,N
+   AM,0010,7,"Physician, team member service","Physician, team member svc",,,,,,,,,4105.7,,,,,,,,,,,,QM,,,,,D,,,,,,0069,,,,,,,,19910101,19970101,,N
+   AO,0010,7,Alternate payment method declined by provider of service,Prov declined alt pmt method,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20131001,20131001,,N
+   AP,0010,7,Determination of refractive state was not performed in the course of diagnostic ophthalmological examination,No dtmn of refractive state,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,19840101,19970101,,N
+   AQ,0010,7,Physician providing a service in an unlisted health professional shortage area (hpsa),Physician service hpsa area,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20060101,20060101,,N
+   AR,0010,7,Physician provider services in a physician scarcity area,Physician scarcity area,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20050101,20050101,,N
+   AS,0010,7,"Physician assistant, nurse practitioner, or clinical nurse specialist services for assistant at surgery",Assistant at surgery service,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,0069,,,,,,,,19880101,19990101,,N
+   AT,0010,7,"Acute treatment (this modifier should be used when reporting service 98940, 98941, 98942)",Acute treatment,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,19840101,19980101,,N
+   AU,0010,7,"Item furnished in conjunction with a urological, ostomy, or tracheostomy supply","Uro, ostomy or trach item",,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20030101,20030101,,N
+   AV,0010,7,"Item furnished in conjunction with a prosthetic device, prosthetic or orthotic",Item w prosthetic/orthotic,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20030101,20030101,,N
+   AW,0010,7,Item furnished in conjunction with a surgical dressing,Item w a surgical dressing,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20030101,20030101,,N
+   CP,0010,7,"Adjunctive service related to a procedure assigned to a comprehensive ambulatory payment classification (c-apc) procedure, but reported on a different claim",C-apc adjunctive service,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20160101,20180101,20171231,N
+   GD,0010,7,Units of service exceeds medically unlikely edit value and represents reasonable and necessary services,Unit of service > mue value,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20080101,20200101,20191231,N
+   JF,0010,7,Compounded drug,Compounded drug,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20150401,20150701,20150630,N
+   JG,0010,7,"Drug or biological acquired with 340b drug pricing program discount, reported for informational purposes",340b acquired drug,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20180101,20250101,20241231,N
+   L1,0010,7,Provider attestation that the hospital laboratory test(s) is not packaged under the hospital opps,Separately payable lab test,,,,,,,,,,,,,,,,,,,,,,,,,,C,,,,,,,,,,,,,,20140701,20170101,20161231,N

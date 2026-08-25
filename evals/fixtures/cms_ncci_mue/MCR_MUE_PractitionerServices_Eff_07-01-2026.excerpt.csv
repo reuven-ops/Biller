@@ -1,0 +1,53 @@
+"Current Procedural Terminology (CPT) codes, descriptions and other data only are copyright 2025 American Medical Association. All rights reserved. 
+
+CPT® is a registered trademark of the American Medical Association.
+
+Applicable FARS/DFARS Restrictions Apply to Government Use. 
+
+Fee schedules, relative value units, conversion factors and/or related components are not assigned by the AMA, are not part of CPT, and the AMA is not recommending their use.  The AMA does not directly or indirectly practice medicine or dispense medical services.  The AMA assumes no liability for the data contained or not contained herein.",,,
+"HCPCS/
+CPT Code",Practitioner Services MUE Values,MUE Adjudication Indicator,MUE Rationale
+0001U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0002M,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0002U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0003M,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0003U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0004M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0005U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0006M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0007M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0007U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0008U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0009U,2,3 Date of Service Edit: Clinical,Nature of Analyte
+0010U,2,3 Date of Service Edit: Clinical,Nature of Service/Procedure
+0011M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0011U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0012M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0013M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0015M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0016M,2,3 Date of Service Edit: Clinical,Nature of Service/Procedure
+0016U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0017M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0017U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0018M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0018U,2,3 Date of Service Edit: Clinical,Nature of Service/Procedure
+0019M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0019U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0020M,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0021U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0022U,2,3 Date of Service Edit: Clinical,Clinical: CMS Workgroup
+0023U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0024U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0025U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0026U,2,3 Date of Service Edit: Clinical,Nature of Service/Procedure
+0027U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0030U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0032U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0034U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0035U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0036U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0037U,1,3 Date of Service Edit: Clinical,Nature of Analyte
+0038U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0039U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0040U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
+0041U,1,2 Date of Service Edit: Policy,Code Descriptor / CPT Instruction
