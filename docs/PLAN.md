@@ -286,3 +286,37 @@ d. Open risks.
 e. Start conditions for Phase 2.
 
 1. Nothing needed from Reuven for the engine build. ANTHROPIC_API_KEY is needed to run the live eval gates at Phase 2 exit; without it the harness runs end to end in stub mode and the gates are reported as blocked on the key (D1).
+
+## Phase 2 report (2026-08-25)
+
+a. What works, with commands to reproduce.
+
+1. Local inference: bge-base-en-v1.5 embeddings (768 dimensions, DECISIONS.md D12) and the bge-reranker-base cross encoder run in process from MODELS_DIR with no network calls. The embedding backfill runs as a worker job and resumes where it left off.
+2. Hybrid retrieval over the real corpus: pgvector cosine top 60 plus full text and code-match top 60, fused with reciprocal rank fusion, filtered by date of service, jurisdiction, payer, tier, and client scope, then reranked to 12. Spot checks against the live corpus: a KX threshold question returns the tier 1 Federal Register PFS rules containing the KX Modifier Thresholds sections; a chiropractic AT modifier question returns Article A56616 and IOM 100-02 chapter 15 section 240.1.3; a psychotherapy telehealth question returns psychiatry Articles and NCCI manual chapter XI.
+3. The full answer path behind pnpm ask "question" [--dos ...]: normalize, PHI screen (regex plus light model), composer with 13 structured lookup and retrieval tools (14 tool call cap, forced submit_answer at the cap), zod-validated answer schema, verifier (deterministic code checks plus model verdicts; unsupported statements stripped; unsupported core elements force abstention), rendered answer with tiered citations, and an append-only qa_log write. Temperature 0, prompts versioned in packages/core/prompts, model IDs and daily cost cap from env.
+4. Hard rule enforcement is tested: 19 core unit and integration tests (pnpm test) cover the happy path, fabricated citation abstention, strip and abstain policy, PHI refusal without persistence, client scope stripping in retrieval and re-checking in the verifier, and date of service filtering in every structured tool.
+5. The eval harness: pnpm eval runs every Phase 2 item of the 28-item golden set (evals/golden.jsonl, Appendix A), including the stale-corpus scenario for A22, the dual date of service run for A23, and the retrieval ablation for A14 and A17, then prints the section 16 gates with honest statuses and writes evals/results-<ts>.json. pnpm report prints the daily qa_log and qa_feedback rollup.
+
+b. What is stubbed or blocked, and why.
+
+1. ANTHROPIC_API_KEY is absent, so LLM_MODE=stub (DECISIONS.md D1). The stub client exercises the full loop deterministically; it cannot grade answer quality, so gates 1 through 6 and 10 report BLOCKED, never PASS. Reuven: provide the key and run pnpm eval to get the live gate results.
+2. Gates 8 and 9 (tier integrity across payer intelligence, client isolation on uploads) need Phase 4 data and report PHASE4.
+3. The embedding backfill over the 15,734 chunks is still running at the time of this report (CPU only, about 3 hours end to end); retrieval already works because the text and code arm covers unembedded chunks and the vector arm covers the embedded portion. The worker finishes the backfill unattended.
+4. CPT descriptors remain excluded everywhere (CPT_LICENSE_MODE=none); answers show bare codes.
+
+c. Row counts by table and eval results by gate.
+
+1. Corpus unchanged from the Phase 1 report: documents 5,221, chunks 15,734, ncci_ptp 2,633,128, mue 15,162, mpfs 152,462, codes 71,319, icd10cm 294,173, gpci 327, conversion_factor 3, telehealth_services 283, therapy_thresholds 1. New: qa_log rows from harness runs (append only).
+2. Gates from the stub run (evals/results-1787655849747.json): gate 1 citation validity BLOCKED; gate 2 groundedness BLOCKED; gate 3 expected evidence BLOCKED; gate 4 abstention BLOCKED (the abstain cases do abstain in stub mode; the answerable side needs live answers); gate 5 ablation BLOCKED (plumbing verified, vacuous under stub); gate 6 date of service awareness BLOCKED; gate 7 PHI refusal PASS (refused and the question text was not persisted); gate 8 PHASE4; gate 9 PHASE4; gate 10 cost and latency BLOCKED (stub numbers are not meaningful).
+3. No gate is reported passed on the stub where a pass needs a live model. The single PASS, gate 7, is graded on behavior the stub does not influence.
+
+d. Open risks.
+
+1. Latency: the CPU cross encoder costs about 33 seconds per query after warm-up (71 seconds cold). The section 16 target is p50 under 30 seconds excluding model time; rerank is local model time, but if the all-in feel matters, options are a smaller reranker, fewer rerank candidates, or keeping the worker warm. Flagged for the Phase 3 UI.
+2. Anthropic API spend starts at the first live run; the daily cap (COST_DAILY_CAP_USD) is enforced in the loop before each call.
+3. The golden set encodes payer1 as UnitedHealthcare and payer2 as Aetna from the hypothesis config; if the real payer list differs, evals/golden.jsonl and config/payers.yaml change together.
+4. Unpushed work: all Phase 1 and 2 commits are local until the GitHub secret-scanning unblock link is approved (the redacted Mapbox token in an MLN fixture).
+
+e. Start conditions for Phase 3.
+
+1. Nothing needed from Reuven to start the web app. Needed to close Phase 2 fully: ANTHROPIC_API_KEY for the live gates, and the push unblock click.
