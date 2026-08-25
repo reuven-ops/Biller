@@ -367,3 +367,37 @@ Three live runs on 2026-08-25 (full run, full run after verifier hardening, targ
 7. Gate 7 PHI refusal: PASS in every run, sub-second, nothing persisted.
 8. Gates 8 and 9: Phase 4 data required.
 9. Gate 10 cost and latency: FAIL against the section 16 targets ($0.25, 30s p50). Measured live: $0.05 to $1.49 per answer, p50 around 170s on 4 CPU cores. Options for the decision with Reuven: GPU at deploy, smaller reranker, tighter tool budget, or revised targets.
+
+## Phase 4 report (2026-08-25)
+
+a. What works, with commands to reproduce.
+
+1. Remit importer per Appendix B (packages/ingest/src/remit-importer.ts). Validates the 23 required columns, rejects any file carrying a patient identifier column and any row matching SSN, email, or phone patterns, aggregates in memory to payer, LOB, state, CPT, modifiers, and year cells, writes remit_behavior and a remit_imports bookkeeping row, and never stores the raw file. Live run: the 24-row synthetic fixture produced 5 cells with 0 rejects. Reproduce: upload evals/fixtures/remit/synthetic_remit.csv on the Admin page, or run the unit tests (pnpm vitest run packages/ingest/test/remit-importer.test.ts).
+2. The D14 gloss pipeline end to end. The cms_remit_guides courier ingested the MLN remittance booklet and the CCIIO RARC guidance (17 chunks, tier 2). The drafting job found 12 codes in remit_behavior needing glosses and, over live retrieval and the glosser prompt, drafted 3 (group codes CO, OA, PR, each with evidence ids and quotes, status draft) and skipped 9 honestly: for CARCs 16, 50, 97, 119, 197 and RARCs M76, N115, N19, N54 the public corpus holds no defining text, so they render as the bare code number with no published description on file. Nothing was drafted from model memory. Approve or retire drafts on the Admin page; reproduce drafting with the Draft missing glosses button there.
+3. Call notes (Phase 4 acceptance item 3): the Appendix C form on the Notes page, PHI screen on the rule text and attachments (a PHI hit persists nothing), unverified-citable on creation, lead approve, retire, reconfirm with a fresh 365-day expiry, append-only call_note_history, and tier 6 corpus chunks whose retired_date tracks expiry. Integration tests cover the round trip at the store and corpus level (pnpm vitest run apps/web/test/integration.notes.test.ts with RUN_INTEGRATION=1).
+4. Client contracts and fee schedules: lead uploads on the Admin page chunk PDF, DOCX, CSV, or XLSX contracts as tier 5 with client_id isolation; machine-readable fee schedules also fill client_fee_schedule. Payer policies upload on the Sources page as tier 4 with the portal path as the citation URL. Re-uploading a revised document under the same title supersedes the old version and records a revised change event (Phase 4 acceptance item 2, verified by integration test: pnpm vitest run apps/web/test/integration.contracts.test.ts).
+5. The weekly digest (document changes by source and payer, call notes expiring within 30 days, remit cells that crossed REMIT_MIN_N) renders on the Ask and Sources pages. Copy for appeal (tiers 1 to 4 only) and next_action scripts have been in the answer contract since Phases 2 and 3.
+6. Payer discovery: all seven hypothesis payers' public libraries verified by live fetch with sample policies and effective dates (docs/SOURCES.md section 22); payers.yaml carries the verified domains. Lint, the dependency audit, and 124 tests pass.
+
+b. What is stubbed or blocked, and why.
+
+1. Automated payer couriers are blocked by payer terms of use, not by engineering (DECISIONS.md D16). All six commercial payers publish public, robots-permitted libraries, and each one's site terms expressly prohibit scraping or systematic downloading. Per hard rule 11 the couriers were not built; leads upload policies instead, which satisfies the same evidence path at tier 4. Florida Medicaid (AHCA) is the exception: public state rulemaking with a robots content signal permitting reference use, so its courier is queued as a fast follow once the payer list is confirmed. Reuven can unblock any commercial payer by obtaining written permission; the discovery record documents each library's mechanics so a courier is quick to build.
+2. Phase 4 acceptance item 1 (5 payers ingested with effective dates) is therefore reinterpreted per rule 19.2: seven libraries verified with effective dates visible, ingestion arrives by lead upload rather than courier. The upload path is tested; no real payer policy has been uploaded yet.
+3. Real data from Reuven is still pending: the Pareto payer list, the client list with user assignments, and a de-identified remit export per Appendix B. Everything above ran on the synthetic fixture; remit cells therefore sit below REMIT_MIN_N (30), so A26 and gates 8 and 9 wait for real volume.
+4. mac_sites (jurisdiction-specific MAC content) waits on the MAC and state footprint decision.
+
+c. Row counts by table.
+
+1. remit_behavior 5 cells from 1 import (24 rows in, 0 rejected, raw file discarded). code_glosses 3 drafts, each with evidence ids and quotes. cms_remit_guides 2 documents, 17 chunks. payer_call_notes 0 in the dev database (integration tests use scratch databases). Corpus total: 5,226 documents, 15,986 chunks.
+2. New tables this phase: code_glosses, client_fee_schedule (migration 0012).
+
+d. Open risks.
+
+1. Gloss coverage is thin by design: 3 of 12 codes have public defining text. Coverage grows as payer policies, MAC articles, and appeal templates enter the corpus and mention codes; the honest-gap rendering keeps the product truthful meanwhile. The X12 license (D10) remains the complete fix.
+2. The Humana counsel flag from D16: policy PDFs bar storage in a retrieval system, which arguably reaches lead uploads. Counsel should advise before Humana policies are uploaded.
+3. Cost and latency versus section 16 targets is unchanged from the Phase 3 addendum and remains the main open decision.
+
+e. Start conditions for Phase 5 (production deployment).
+
+1. The server. deploy/bootstrap.sh is a one-paste Ubuntu setup; docs/RUNBOOK.md covers operations. Nothing else blocks deployment.
+2. Nice to have before pilot: Jeremy's payer list, the client list, and the real remit export so gates 8 and 9 can run.
