@@ -23,6 +23,8 @@ export interface VerifierItem {
   verdict: 'supported' | 'partial' | 'unsupported';
   evidence_id: string | null;
   quote: string | null;
+  /** Required for partial and unsupported verdicts: what exactly is not supported. */
+  note?: string | null;
 }
 
 export interface VerifierOutput {
@@ -111,7 +113,7 @@ async function llmVerdicts(
           `Cited evidence records:\n${evidenceBlock || '(none cited)'}`,
       },
     ],
-    maxTokens: 8192,
+    maxTokens: 16384,
   });
   const textOut = res.content.find((b) => b.type === 'text');
   if (!textOut || textOut.type !== 'text') return null;
@@ -264,10 +266,11 @@ export async function verifyAnswer(
         tierViolations.some((v) => v.startsWith('codes[')))) ||
     clientViolations.length > 0;
 
-  if (!coreFailure && bottomLineItem?.verdict === 'partial' && final.confidence.level === 'high') {
+  if (!coreFailure && bottomLineItem?.verdict === 'partial') {
+    const note = bottomLineItem.note ? ` Verifier note: ${bottomLineItem.note}` : '';
     final.confidence = {
-      level: 'medium',
-      rationale: `${final.confidence.rationale} The verifier graded the bottom line as only partially supported by the quoted evidence.`,
+      level: 'low',
+      rationale: `The verifier graded the bottom line as only partially supported by the quoted evidence; treat details with care and check the citations.${note}`,
     };
   }
 

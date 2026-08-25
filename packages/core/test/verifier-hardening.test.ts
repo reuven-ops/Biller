@@ -211,7 +211,7 @@ describe('verifier hardening', () => {
       userClientIds: [],
     });
     expect(out.finalAnswer.abstained).toBe(false);
-    expect(out.finalAnswer.confidence.level).toBe('medium');
+    expect(out.finalAnswer.confidence.level).toBe('low');
     expect(out.finalAnswer.confidence.rationale).toContain('partially supported');
   });
 
