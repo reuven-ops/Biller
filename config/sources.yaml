@@ -105,6 +105,11 @@ sources:
           chapter: '3'
           title: 'Medicare Program Integrity Manual, Chapter 3, Verifying Potential Errors'
           url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/pim83c03.pdf'
+        - manual: '100-04'
+          chapter: '22'
+          title: 'Medicare Claims Processing Manual, Chapter 22, Remittance Advice'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c22.pdf'
+          note: 'group codes 60.1, CARC 60.2, RARC 60.3; added for the denial code glosses (D14)'
   - id: cms_mln
     name: MLN Matters articles and Transmittals index
     publisher: CMS
@@ -220,5 +225,21 @@ sources:
     cadence_days: 120
     tier: 2
     license_required: true # X12 terms of use prohibit scraping and AI use; see DECISIONS.md D10
-    enabled: false # blocked on an X12 External Code List license; flagged 2026-08-25
+    enabled: false # user declined the license 2026-08-25; superseded by the D14 gloss workaround
     base_url: 'https://x12.org/codes/claim-adjustment-reason-codes'
+  - id: cms_remit_guides
+    name: CMS remittance advice guidance documents
+    publisher: CMS
+    kind: pdf
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: false # courier lands in Phase 4 with the remit views; sources verified 2026-08-25 (D14)
+    base_url: 'https://www.cms.gov/medicare/coding-billing/electronic-billing/health-care-payment-remittance-advice'
+    config:
+      documents:
+        - title: 'MLN booklet ICN905367, Remittance Advice Resources and FAQs'
+          url: 'https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/icn905367textonly.pdf'
+        - title: 'CCIIO guidance, Required RARCs under the CAA and the No Surprises Act'
+          url: 'https://www.cms.gov/cciio/programs-and-initiatives/other-insurance-protections/caa-nsa-rarc-codes.pdf'
+          note: 'footnote 5 reproduces RARC text with X12 and WPC permission for that prescribed purpose; quote as cited excerpts only'

@@ -167,7 +167,7 @@ Blocked on Reuven for: Jeremy's Pareto payer list, the MAC and state footprint, 
 Milestone M4.1: payer policy couriers for the top 5 payers in payers.yaml with hash diff and PDF extraction; portal PDF upload for leads.
 Milestone M4.2: client contract uploads with client_id isolation; client_fee_schedule parsing when machine-readable.
 Milestone M4.3: call notes: Appendix C form, PHI screen, unverified citable, lead approve, retire, reconfirm, expiry, call_note_history, corpus chunking at tier 6.
-Milestone M4.4: remit importer per Appendix B: validation, identifier column rejection, aggregation to remit_behavior, CARC and RARC labels from source 20, raw file deletion, remit_imports bookkeeping.
+Milestone M4.4: remit importer per Appendix B: validation, identifier column rejection, aggregation to remit_behavior, raw file deletion, remit_imports bookkeeping. Code labels come from the D14 gloss pipeline, not source 20 (X12 license declined 2026-08-25): the cms_remit_guides courier, a code_glosses table with evidence ids and draft or approved status, the grounded gloss drafting job through the composer and verifier, the lead review queue, and re-review flags on cited document changes. Codes without public evidence display the bare number with an ask-the-advisor link.
 Milestone M4.5: weekly digest, Copy for appeal (tiers 1 to 4 only), next_action call scripts.
 
 Acceptance checks (brief Phase 4 gate):
