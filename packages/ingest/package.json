@@ -16,7 +16,7 @@
     "croner": "^10.0.1",
     "csv-parse": "^7.0.2",
     "pdfjs-dist": "^6.2.108",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
