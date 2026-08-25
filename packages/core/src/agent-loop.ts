@@ -377,6 +377,7 @@ async function writeQaLog(
               codeChecks: verifier.codeChecks,
               items: verifier.items,
               supportedRate: verifier.supportedRate,
+              verdictsUnavailable: verifier.verdictsUnavailable,
               removed: verifier.removed,
               abstainedByVerifier: verifier.abstainedByVerifier,
               modelMode: verifier.modelMode,

@@ -35,6 +35,8 @@ export interface VerifierOutput {
   };
   items: VerifierItem[];
   supportedRate: number | null;
+  /** Live mode only: the model verdict pass failed twice, so the answer was withheld. */
+  verdictsUnavailable: boolean;
   removed: { kind: string; statement: string }[];
   finalAnswer: Answer;
   abstainedByVerifier: boolean;
@@ -113,12 +115,38 @@ async function llmVerdicts(
   });
   const textOut = res.content.find((b) => b.type === 'text');
   if (!textOut || textOut.type !== 'text') return null;
+  // Models sometimes fence the JSON or add prose around it; take the outermost braces.
+  const jsonStart = textOut.text.indexOf('{');
+  const jsonEnd = textOut.text.lastIndexOf('}');
+  if (jsonStart < 0 || jsonEnd <= jsonStart) return null;
   try {
-    const jsonStart = textOut.text.indexOf('{');
-    const parsed = JSON.parse(textOut.text.slice(jsonStart)) as { items?: VerifierItem[] };
+    const parsed = JSON.parse(textOut.text.slice(jsonStart, jsonEnd + 1)) as {
+      items?: VerifierItem[];
+    };
     return parsed.items ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Rewrites every citation's metadata from the run's evidence registry. The model
+ * chooses only the evidence_id; document, tier, section, dates, and URL always come
+ * from the retrieved record (brief hard rule 2), so a mislabeled tier or a mangled
+ * external_id can neither slip past the tier checks nor reach the screen.
+ */
+function canonicalizeCitations(answer: Answer, registry: EvidenceRegistry): void {
+  for (const c of allCitations(answer)) {
+    const rec = registry.get(c.evidence_id);
+    if (!rec) continue;
+    c.document_id = rec.document_id;
+    c.external_id = rec.external_id;
+    c.tier = rec.tier as Citation['tier'];
+    c.section_path = rec.section_path;
+    c.effective_date = rec.effective_date;
+    c.retired_date = rec.retired_date;
+    c.retrieved_at = rec.retrieved_at;
+    c.url = rec.url;
   }
 }
 
@@ -134,6 +162,9 @@ export async function verifyAnswer(
   runContext: { dos: string; userClientIds: string[] },
 ): Promise<VerifierOutput> {
   const prompt = promptText('verifier.md');
+
+  // 0. Citation metadata always comes from the registry, never from the model.
+  canonicalizeCitations(answer, registry);
 
   // 1. Citation check, in code: every evidence_id must exist in this run's registry.
   const invalidCitations: string[] = [];
@@ -151,9 +182,15 @@ export async function verifyAnswer(
   const tierViolations = tierViolationsOf(answer);
   const dosViolations = dosViolationsOf(answer, runContext.dos);
 
-  // 2. Model pass.
-  const items = (await llmVerdicts(llm, question, answer, registry, prompt)) ?? [];
-  const graded = items.length > 0 ? items : null;
+  // 2. Model pass. One retry on an unparseable response; in live mode a verdict
+  // pass that still fails closes the answer (hard rule 1: unverified answers do
+  // not ship), while stub mode keeps running for plumbing tests.
+  let items = await llmVerdicts(llm, question, answer, registry, prompt);
+  if (items === null && llm.mode === 'live') {
+    items = await llmVerdicts(llm, question, answer, registry, prompt);
+  }
+  const verdictsUnavailable = items === null && llm.mode === 'live' && !answer.abstained;
+  const graded = items && items.length > 0 ? items : null;
   const supportedRate = graded
     ? graded.filter((i) => i.verdict === 'supported').length / graded.length
     : null;
@@ -215,7 +252,8 @@ export async function verifyAnswer(
   const bottomLineItem = (graded ?? []).find((i) => i.kind === 'bottom_line');
   const coreFailure =
     (!answer.abstained &&
-      (codeUnsupported.size > 0 ||
+      (verdictsUnavailable ||
+        codeUnsupported.size > 0 ||
         (bottomLineItem && bottomLineItem.verdict !== 'supported') ||
         answer.codes.some((c) => !hasValidCite(c.citations)) ||
         (invalidCitations.length > 0 &&
@@ -228,6 +266,8 @@ export async function verifyAnswer(
   if (coreFailure) {
     abstainedByVerifier = true;
     const reasons: string[] = [];
+    if (verdictsUnavailable)
+      reasons.push('the verification pass could not be completed, so the answer is withheld');
     if (codeUnsupported.size > 0)
       reasons.push('a code or modifier is not supported by the cited evidence');
     if (bottomLineItem && bottomLineItem.verdict !== 'supported')
@@ -255,6 +295,7 @@ export async function verifyAnswer(
     },
     items: graded ?? [],
     supportedRate,
+    verdictsUnavailable,
     removed,
     finalAnswer: final,
     abstainedByVerifier,
