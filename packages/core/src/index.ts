@@ -1,10 +1,18 @@
-export { loadSources, loadEgress, loadJurisdictions, loadPayers, hostAllowed } from './config.js';
+export {
+  loadSources,
+  loadEgress,
+  loadJurisdictions,
+  loadPayers,
+  loadProviderTypes,
+  hostAllowed,
+} from './config.js';
 export type {
   SourceConfig,
   EgressConfig,
   JurisdictionsConfig,
   MacConfig,
   PayerConfig,
+  ProviderTypeConfig,
 } from './config.js';
 export {
   embedPassages,

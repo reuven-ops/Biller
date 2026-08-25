@@ -67,6 +67,19 @@ export async function loadPayers(dir: string = CONFIG_DIR): Promise<PayerConfig[
   return parsed.payers;
 }
 
+export interface ProviderTypeConfig {
+  id: string;
+  name: string;
+}
+
+export async function loadProviderTypes(dir: string = CONFIG_DIR): Promise<ProviderTypeConfig[]> {
+  const parsed = await readYaml<{ provider_types: ProviderTypeConfig[] }>(
+    'provider_types.yaml',
+    dir,
+  );
+  return parsed.provider_types;
+}
+
 /**
  * True when the hostname is allowed by the egress allowlist. A leading "*." entry
  * matches any subdomain; a bare domain matches itself and any subdomain, mirroring
