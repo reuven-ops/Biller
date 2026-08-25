@@ -320,3 +320,36 @@ d. Open risks.
 e. Start conditions for Phase 3.
 
 1. Nothing needed from Reuven to start the web app. Needed to close Phase 2 fully: ANTHROPIC_API_KEY for the live gates, and the push unblock click.
+
+## Phase 3 report (2026-08-25)
+
+a. What works, with commands to reproduce.
+
+1. The web application (apps/web) on node:http with no web framework: escaped-by-default server rendering, session cookie auth with scrypt hashes, lockout after five failures, single-use invite links, CSRF on every authenticated POST, role guards for biller, lead, and admin, security headers, and the 30 questions per user per hour limit counted from qa_log. Run with APP_PORT=3100 pnpm --filter @advisor/web start; manage users with pnpm users add|invite|list.
+2. Ask: the full section 13.1 rendering contract. The form posts, the agent loop runs in the background, a self-refreshing page shows progress, and the answer renders in tier order with expandable citations (passage text, effective date, retrieval date, source link), Copy for appeal from tiers 1 to 4 only, Correct, Incorrect, Partial feedback writing qa_feedback, Request source on abstentions, and the similar past questions panel from team history. Client-scoped answers are hidden from unassigned users in both the answer view and history.
+3. History with mine and team scopes and text and payer search; Help rendered from docs/HELP.md (content written for billers); Sources with per-source freshness, the change digest, the source requests queue, and admin run now, which queues the source for the worker's next scheduler pass (migration 0011); Admin with users, roles, invites, disable, client assignments, cost today and month against the daily cap, and model and prompt versions. Every admin action is written to the append-only admin_audit table (migration 0010).
+4. Browser acceptance: apps/web/e2e/ui-drive.mts drives login, ask, and the rendered answer in headless Chromium and saves screenshots; shoot-pages.mts tours the other pages. The 98940 with 97140 question was answered end to end in the browser with correct NCCI citations ($0.37, about 4 minutes under heavy CPU contention).
+5. The first live eval pass hardened the verifier: verdict JSON parsing takes the outermost braces with one retry, a failed verdict pass in live mode withholds the answer (fail closed, hard rule 1), and citation metadata is always rewritten from the evidence registry so a model-mislabeled tier cannot pass the tier checks (hard rule 2). 104 tests pass; lint and the dependency audit are clean in CI.
+
+b. What is stubbed or blocked, and why.
+
+1. The live eval run stopped at 22 of 24 items: the Anthropic account ran out of API credits (about $14 spent). Reuven: add credits in the console under Plans and Billing, then pnpm eval reruns the full gate table. Salvaged results from the completed items: gate 1 citation validity PASS (zero invalid citations), gate 7 PHI refusal PASS; gates 2 and 3 were mismeasured by the two verifier bugs fixed above and need the rerun; gates 5 and 6 did not run.
+2. Google OIDC stays behind AUTH_GOOGLE_ENABLED=0. Call notes, uploads, remit import, and eval run management in the Admin page are Phase 4 by design.
+3. The Phase 3 acceptance item "10 golden questions answered in the UI" is partially evidenced: golden questions ran live through the same ask() path as the UI, and one ran fully in the browser; a full 10-question browser pass waits for the credit top-up.
+
+c. Row counts by table and eval results by gate.
+
+1. New tables: admin_audit (append only, enforced by grants), sources.run_requested_at. Users: 1 admin (Reuven, local dev password to be changed at deploy). qa_log now holds the live eval answers plus browser and CLI asks, about $14 total model spend, all under the $25 daily cap.
+2. Live gates so far: 1 PASS, 7 PASS, 2 and 3 remeasure after the verifier fix, 4 FAIL pending diagnosis (five must-answer items abstained: A2, A4, A10, A18, A19; some may trace to the fixed verifier bug, some may be honest corpus gaps), 5 and 6 not run, 8 and 9 Phase 4, 10 FAIL as measured (max cost $1.43 vs the $0.25 target; p50 latency about 200 seconds vs the 30 second target, measured while the embedding backfill saturated the CPU).
+
+d. Open risks.
+
+1. Cost and latency versus the section 16 targets is the biggest open question. Levers: verify prompt cache hits, cap composer tool calls harder, rerank fewer candidates, a smaller reranker or a GPU at deploy; or revisit the targets. Decide after a clean rerun on an idle machine.
+2. NCCI manual section labels: some lettered headings (A, E, F, R, S) are missed by the section splitter, so a few chunks carry the previous section's label (the text itself is correct). Fix queued: widen the heading match and re-ingest the manual.
+3. The in-memory pending-answer registry loses in-flight questions on an app restart (the page then says ask again). Acceptable for v1; a jobs table would survive restarts.
+4. Sandbox-only: the dev password for reuven@espoc.com is local; production accounts arrive by invite link at deploy.
+
+e. Start conditions for Phase 4.
+
+1. Anthropic credits for the eval rerun (blocks the Phase 2/3 gate table, not Phase 4 work).
+2. For Phase 4 proper: the real payer list confirmation (payers.yaml is hypothesis), the client list, and a de-identified remit CSV export per Appendix B when available.
