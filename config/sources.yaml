@@ -180,7 +180,7 @@ sources:
     cadence_days: 7
     tier: 4
     license_required: false
-    enabled: false # enabled in Phase 4
+    enabled: true # Phase 4
     base_url: ''
   - id: client_contracts
     name: Client payer contracts and fee schedules
@@ -189,7 +189,7 @@ sources:
     cadence_days: 0
     tier: 5
     license_required: false
-    enabled: false # enabled in Phase 4
+    enabled: true # Phase 4
     base_url: ''
   - id: payer_call_notes
     name: Structured payer call notes
@@ -198,7 +198,7 @@ sources:
     cadence_days: 0
     tier: 6
     license_required: false
-    enabled: false # enabled in Phase 4
+    enabled: true # Phase 4
     base_url: ''
   - id: remit_behavior
     name: Aggregated remittance behavior
@@ -234,7 +234,7 @@ sources:
     cadence_days: 91
     tier: 2
     license_required: false
-    enabled: false # courier lands in Phase 4 with the remit views; sources verified 2026-08-25 (D14)
+    enabled: true # D14 gloss grounding; courier added in Phase 4 M4.4
     base_url: 'https://www.cms.gov/medicare/coding-billing/electronic-billing/health-care-payment-remittance-advice'
     config:
       documents:

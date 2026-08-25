@@ -15,9 +15,11 @@ import { oigWorkplanCourier } from './oig-workplan.js';
 import { fedregCourier } from './fedreg.js';
 import { cmsMlnCourier } from './cms-mln.js';
 import { cmsMcdCourier } from './cms-mcd.js';
+import { cmsRemitGuidesCourier } from './cms-remit-guides.js';
 
 export const ALL_COURIERS: Courier[] = [
   cmsNcciPtpCourier,
+  cmsRemitGuidesCourier,
   cmsNcciMueCourier,
   cmsNcciManualCourier,
   cmsHcpcsCourier,

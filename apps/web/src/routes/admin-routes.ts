@@ -3,7 +3,14 @@
 // management land in Phase 4.
 import { intEnv } from '@advisor/db';
 import type { Pool } from '@advisor/db';
-import { modelConfig, promptVersion } from '@advisor/core';
+import {
+  createLlmClient,
+  draftMissingGlosses,
+  flagStaleGlosses,
+  modelConfig,
+  promptVersion,
+} from '@advisor/core';
+import { importRemitCsv } from '@advisor/ingest';
 import { auditAdminAction, createInvite } from '../auth.js';
 import { html, layout } from '../html.js';
 import { redirect, sendHtml, type Handler, type Router } from '../http.js';
@@ -25,13 +32,18 @@ type Authed = (
 
 const ROLES = ['biller', 'lead', 'admin'] as const;
 
+// One drafting run at a time; retrieval and drafting take minutes on CPU.
+let glossRun: { startedAt: number; done: boolean; message: string } | null = null;
+
 export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed): void {
   router.get(
     '/admin',
     authed('admin', async (ctx) => {
       const invited = ctx.query.get('invited');
       const inviteToken = ctx.query.get('token');
-      const [users, cost, clients] = await Promise.all([
+      const remitMessage = ctx.query.get('remit');
+      const remitOk = ctx.query.get('remit_ok') === '1';
+      const [users, cost, clients, imports, glosses] = await Promise.all([
         pool.query<{
           id: string;
           email: string;
@@ -55,6 +67,32 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
         ),
         pool.query<{ id: string; name: string }>(
           'SELECT id, name FROM clients WHERE active ORDER BY name',
+        ),
+        pool.query<{
+          filename: string;
+          rows_in: number;
+          rows_rejected: number;
+          cells_written: number;
+          imported_at: Date;
+          email: string | null;
+        }>(
+          `SELECT r.filename, r.rows_in, r.rows_rejected, r.cells_written, r.imported_at, u.email
+           FROM remit_imports r LEFT JOIN users u ON u.id = r.imported_by
+           ORDER BY r.imported_at DESC LIMIT 10`,
+        ),
+        pool.query<{
+          id: string;
+          code_type: string;
+          code: string;
+          gloss: string;
+          status: string;
+          needs_review: boolean;
+          evidence_titles: string;
+        }>(
+          `SELECT id, code_type, code, gloss, status, needs_review,
+                  (SELECT string_agg(DISTINCT ev->>'title', '; ')
+                   FROM jsonb_array_elements(evidence) ev) AS evidence_titles
+           FROM code_glosses ORDER BY needs_review DESC, code_type, code LIMIT 100`,
         ),
       ]);
       const cap = intEnv('DAILY_COST_CAP_USD', 25);
@@ -208,13 +246,217 @@ export function registerAdminRoutes(router: Router, pool: Pool, authed: Authed):
               }
             </div>
 
-            <p class="muted">
-              Remittance imports and eval run management arrive with Phase 4. Feedback review for
-              leads arrives with the call notes pages.
-            </p>
+            <h2>Remittance import</h2>
+            <div class="card">
+              ${
+                remitMessage
+                  ? html`<div class="${remitOk ? 'notice' : 'error'}">${remitMessage}</div>`
+                  : ''
+              }
+              <form method="post" action="/admin/remit" enctype="multipart/form-data">
+                <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                <label for="remit-file">De-identified claim line CSV (Appendix B contract)</label>
+                <input id="remit-file" name="remit" type="file" accept=".csv,text/csv" required />
+                <p><button type="submit">Import</button></p>
+                <p class="muted">
+                  A file carrying any patient identifier column or value is rejected whole. Rows
+                  aggregate into remittance cells; the raw file is discarded after aggregation.
+                  Cells under REMIT_MIN_N claims are stored but never cited.
+                </p>
+              </form>
+              ${
+                imports.rows.length
+                  ? html`<table>
+                      <thead>
+                        <tr>
+                          <th>When</th>
+                          <th>File</th>
+                          <th>Rows in</th>
+                          <th>Rejected</th>
+                          <th>Cells</th>
+                          <th>By</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${imports.rows.map(
+                        (r) => html`
+                          <tr>
+                            <td>${r.imported_at.toISOString().slice(0, 16).replace('T', ' ')}</td>
+                            <td>${r.filename}</td>
+                            <td>${r.rows_in}</td>
+                            <td>${r.rows_rejected}</td>
+                            <td>${r.cells_written}</td>
+                            <td>${r.email ?? ''}</td>
+                          </tr>
+                        `,
+                      )}
+                      </tbody>
+                    </table>`
+                  : ''
+              }
+            </div>
+
+            <h2>Denial code glosses</h2>
+            <div class="card">
+              <p class="muted">
+                Plain-language explanations of CARC, RARC, and group codes, drafted only from
+                evidence in the public corpus (DECISIONS.md D14). Drafts need lead approval before
+                remit views show them; codes without public evidence stay honest gaps.
+              </p>
+              ${
+                glossRun && !glossRun.done
+                  ? html`<div class="notice">
+                      Drafting run in progress; refresh in a few minutes.
+                    </div>`
+                  : glossRun
+                    ? html`<div class="notice">${glossRun.message}</div>`
+                    : ''
+              }
+              <form method="post" action="/admin/glosses/draft" class="inline">
+                <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                <button type="submit" class="quiet">Draft missing glosses</button>
+              </form>
+              ${
+                glosses.rows.length
+                  ? html`<table>
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Gloss</th>
+                          <th>Status</th>
+                          <th>Evidence</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${glosses.rows.map(
+                        (g) => html`
+                          <tr>
+                            <td>${g.code_type.toUpperCase()} ${g.code}</td>
+                            <td>${g.gloss}</td>
+                            <td>
+                              <span class="pill">${g.status}</span>
+                              ${g.needs_review ? html`<span class="pill" style="background:#fff3cd">source changed</span>` : ''}
+                            </td>
+                            <td class="muted">${g.evidence_titles}</td>
+                            <td>
+                              ${
+                                g.status === 'draft' || g.needs_review
+                                  ? html`<form
+                                      class="inline"
+                                      method="post"
+                                      action="/admin/glosses/${g.id}/approve"
+                                    >
+                                      <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                                      <button class="quiet" type="submit">Approve</button>
+                                    </form>`
+                                  : ''
+                              }
+                              ${
+                                g.status !== 'retired'
+                                  ? html`<form
+                                      class="inline"
+                                      method="post"
+                                      action="/admin/glosses/${g.id}/retire"
+                                    >
+                                      <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                                      <button class="quiet" type="submit">Retire</button>
+                                    </form>`
+                                  : ''
+                              }
+                            </td>
+                          </tr>
+                        `,
+                      )}
+                      </tbody>
+                    </table>`
+                  : html`<p class="muted">No glosses yet. Import remit data, then draft.</p>`
+              }
+            </div>
+
+            <p class="muted">Eval run management arrives with Phase 6 hardening.</p>
           `,
         }),
       );
+    }),
+  );
+
+  router.post(
+    '/admin/remit',
+    authed('admin', async (ctx) => {
+      const file = ctx.files.find((f) => f.field === 'remit');
+      if (!file) {
+        redirect(ctx, `/admin?remit=${encodeURIComponent('Choose a CSV file to import.')}`);
+        return;
+      }
+      const outcome = await importRemitCsv(pool, file.data, file.filename, ctx.user.id);
+      await auditAdminAction(pool, ctx.user.id, 'remit_import', {
+        filename: file.filename,
+        ok: outcome.ok,
+        rowsIn: outcome.rowsIn ?? 0,
+        rowsRejected: outcome.rowsRejected ?? 0,
+      });
+      const detail = outcome.rejects?.length
+        ? ` First rejects: ${outcome.rejects.slice(0, 3).join('; ')}`
+        : '';
+      redirect(
+        ctx,
+        `/admin?remit_ok=${outcome.ok ? '1' : '0'}&remit=${encodeURIComponent(outcome.message + detail)}`,
+      );
+    }),
+  );
+
+  router.post(
+    '/admin/glosses/draft',
+    authed('admin', async (ctx) => {
+      if (!glossRun || glossRun.done) {
+        glossRun = { startedAt: Date.now(), done: false, message: '' };
+        const run = glossRun;
+        void (async () => {
+          try {
+            await flagStaleGlosses(pool);
+            const summary = await draftMissingGlosses(pool, createLlmClient());
+            run.message = `Drafted ${summary.drafted} glosses; ${summary.skipped.length} codes lack public evidence${
+              summary.skipped.length
+                ? ` (${summary.skipped
+                    .slice(0, 5)
+                    .map((s) => s.code)
+                    .join(', ')})`
+                : ''
+            }.`;
+          } catch (err) {
+            run.message = `Drafting failed: ${(err as Error).message}`;
+          } finally {
+            run.done = true;
+          }
+        })();
+        await auditAdminAction(pool, ctx.user.id, 'gloss_draft_run', {});
+      }
+      redirect(ctx, '/admin');
+    }),
+  );
+
+  router.post(
+    '/admin/glosses/:id/approve',
+    authed('lead', async (ctx) => {
+      await pool.query(
+        `UPDATE code_glosses SET status = 'approved', approved_by = $2, approved_at = now(),
+           needs_review = false WHERE id::text = $1`,
+        [ctx.params['id'], ctx.user.id],
+      );
+      await auditAdminAction(pool, ctx.user.id, 'gloss_approved', { gloss: ctx.params['id'] });
+      redirect(ctx, '/admin');
+    }),
+  );
+
+  router.post(
+    '/admin/glosses/:id/retire',
+    authed('lead', async (ctx) => {
+      await pool.query(`UPDATE code_glosses SET status = 'retired' WHERE id::text = $1`, [
+        ctx.params['id'],
+      ]);
+      await auditAdminAction(pool, ctx.user.id, 'gloss_retired', { gloss: ctx.params['id'] });
+      redirect(ctx, '/admin');
     }),
   );
 

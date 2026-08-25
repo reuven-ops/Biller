@@ -12,3 +12,5 @@ export { runCourier } from './courier.js';
 export type { Courier, CourierContext, CourierResult, RunOutcome } from './courier.js';
 export { startScheduler, runDueCouriers, couriersById } from './scheduler.js';
 export { ALL_COURIERS } from './couriers/index.js';
+export { parseRemitCsv, importRemitCsv, REQUIRED_COLUMNS } from './remit-importer.js';
+export type { RemitParseResult, RemitImportOutcome, RemitCell } from './remit-importer.js';

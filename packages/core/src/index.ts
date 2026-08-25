@@ -46,3 +46,10 @@ export type { AskRequest, AskResult } from './agent-loop.js';
 export { renderAnswer } from './renderer.js';
 export { newToolContext, dispatchTool, TOOL_DEFINITIONS } from './tools.js';
 export type { ToolContext } from './tools.js';
+export {
+  draftGlossFromEvidence,
+  draftMissingGlosses,
+  codesNeedingGlosses,
+  flagStaleGlosses,
+} from './glosses.js';
+export type { GlossDraft, GlossEvidence, GlossRunSummary } from './glosses.js';
