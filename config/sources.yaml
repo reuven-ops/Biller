@@ -176,11 +176,11 @@ sources:
   - id: payer_policies
     name: Payer reimbursement and medical policies
     publisher: configured payers
-    kind: html
-    cadence_days: 7
+    kind: upload
+    cadence_days: 0
     tier: 4
     license_required: false
-    enabled: true # Phase 4
+    enabled: true # Phase 4 lead uploads; automated couriers blocked by payer terms of use (D16)
     base_url: ''
   - id: client_contracts
     name: Client payer contracts and fee schedules
@@ -207,7 +207,7 @@ sources:
     cadence_days: 30
     tier: 7
     license_required: false
-    enabled: false # enabled in Phase 4
+    enabled: true # Phase 4 import pipeline
     base_url: ''
   - id: ama_cpt
     name: CPT Standard Data File

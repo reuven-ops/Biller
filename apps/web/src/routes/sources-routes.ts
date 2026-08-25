@@ -1,7 +1,10 @@
 // Sources page (brief section 13.4): freshness by source, run now (admin),
 // change digest, and the source requests queue. Uploads land in Phase 4.
 import type { Pool } from '@advisor/db';
+import { loadPayers } from '@advisor/core';
 import { auditAdminAction } from '../auth.js';
+import { importPayerPolicy } from '../contracts-store.js';
+import { renderDigest, weeklyDigest } from '../digest.js';
 import { html, layout } from '../html.js';
 import { redirect, sendHtml, type Handler, type Router } from '../http.js';
 
@@ -24,6 +27,12 @@ export function registerSourcesRoutes(router: Router, pool: Pool, authed: Authed
   router.get(
     '/sources',
     authed('biller', async (ctx) => {
+      const payerNames = [
+        'Medicare Part B',
+        'Medicare Advantage',
+        ...(await loadPayers()).map((p) => p.name),
+      ];
+      const digest = await weeklyDigest(pool);
       const [sources, changes, requests] = await Promise.all([
         pool.query<{
           id: string;
@@ -126,6 +135,9 @@ export function registerSourcesRoutes(router: Router, pool: Pool, authed: Authed
               </p>
             </div>
 
+            <h2>What changed this week</h2>
+            <div class="card">${renderDigest(digest)}</div>
+
             <h2>Change digest, latest 25</h2>
             <div class="card">
               ${
@@ -147,6 +159,68 @@ export function registerSourcesRoutes(router: Router, pool: Pool, authed: Authed
                     </table>`
               }
             </div>
+
+            ${
+              ctx.user.role !== 'biller'
+                ? html`<h2>Upload a payer policy</h2>
+                    <div class="card">
+                      ${
+                        ctx.query.get('policy')
+                          ? html`<div
+                              class="${ctx.query.get('policy_ok') === '1' ? 'notice' : 'error'}"
+                            >
+                              ${ctx.query.get('policy')}
+                            </div>`
+                          : ''
+                      }
+                      <form
+                        method="post"
+                        action="/sources/payer-policy"
+                        enctype="multipart/form-data"
+                      >
+                        <input type="hidden" name="csrf" value="${ctx.csrf}" />
+                        <div class="row">
+                          <div>
+                            <label for="pp-payer">Payer</label>
+                            <select id="pp-payer" name="payer">
+                              ${payerNames.map((p) => html`<option value="${p}">${p}</option>`)}
+                            </select>
+                          </div>
+                          <div>
+                            <label for="pp-title">Policy title</label>
+                            <input id="pp-title" name="title" type="text" required />
+                          </div>
+                          <div>
+                            <label for="pp-eff">Effective date</label>
+                            <input id="pp-eff" name="effective_date" type="date" />
+                          </div>
+                        </div>
+                        <label for="pp-url">Portal path or URL where the policy lives</label>
+                        <input
+                          id="pp-url"
+                          name="portal_path"
+                          type="text"
+                          required
+                          placeholder="https://... or Portal > Policies > ..."
+                        />
+                        <label for="pp-file">Policy document (PDF or DOCX)</label>
+                        <input
+                          id="pp-file"
+                          name="policy"
+                          type="file"
+                          accept=".pdf,.docx"
+                          required
+                        />
+                        <p><button type="submit">Upload policy</button></p>
+                        <p class="muted">
+                          Payer terms of use bar automated collection from their sites (DECISIONS.md
+                          D16), so leads upload policies obtained through the practice's own
+                          provider access. Uploads become tier 4 evidence.
+                        </p>
+                      </form>
+                    </div>`
+                : ''
+            }
 
             <h2>Source requests</h2>
             <div class="card">
@@ -183,6 +257,34 @@ export function registerSourcesRoutes(router: Router, pool: Pool, authed: Authed
             </div>
           `,
         }),
+      );
+    }),
+  );
+
+  router.post(
+    '/sources/payer-policy',
+    authed('lead', async (ctx) => {
+      const file = ctx.files.find((f) => f.field === 'policy');
+      if (!file) {
+        redirect(ctx, `/sources?policy=${encodeURIComponent('Choose a policy file.')}`);
+        return;
+      }
+      const outcome = await importPayerPolicy(pool, {
+        payer: ctx.form['payer'] ?? '',
+        title: (ctx.form['title'] ?? '').trim() || file.filename,
+        effectiveDate: ctx.form['effective_date'] || null,
+        portalPath: (ctx.form['portal_path'] ?? '').trim(),
+        filename: file.filename,
+        data: file.data,
+      });
+      await auditAdminAction(pool, ctx.user.id, 'payer_policy_upload', {
+        payer: ctx.form['payer'],
+        title: ctx.form['title'],
+        ok: outcome.ok,
+      });
+      redirect(
+        ctx,
+        `/sources?policy_ok=${outcome.ok ? '1' : '0'}&policy=${encodeURIComponent(outcome.message)}`,
       );
     }),
   );

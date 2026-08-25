@@ -14,6 +14,7 @@ import { getPending, startAsk } from '../asks.js';
 import { html, layout, type Safe } from '../html.js';
 import { redirect, sendHtml, type Handler, type Router } from '../http.js';
 import { renderAnswerHtml } from '../render-answer.js';
+import { renderDigest, weeklyDigest } from '../digest.js';
 
 interface AuthedLike {
   user: {
@@ -66,6 +67,7 @@ export function registerAskRoutes(router: Router, pool: Pool, authed: Authed): v
       ];
       const today = new Date().toISOString().slice(0, 10);
       const used = await questionsInLastHour(pool, ctx.user.id);
+      const digest = await weeklyDigest(pool);
       sendHtml(
         ctx,
         200,
@@ -139,6 +141,8 @@ export function registerAskRoutes(router: Router, pool: Pool, authed: Authed): v
                 Answers cite retrieved evidence only; the tool abstains when evidence is missing.
               </p>
             </div>
+            <h2>What changed this week</h2>
+            <div class="card">${renderDigest(digest)}</div>
             <h2>Example questions</h2>
             <div class="card">
               <ul>

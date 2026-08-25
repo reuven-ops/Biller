@@ -1,32 +1,41 @@
 # Hypothesis defaults from brief section 18. Replace with the payers covering
 # 80 percent of ClinicMind claim volume before Phase 4 (Jeremy supplies the Pareto list).
-# Policy library URLs are discovered and filled in Phase 4.
+# Policy library URLs verified 2026-08-25 (docs/SOURCES.md section 22). Automated
+# couriers are blocked by payer terms of use (DECISIONS.md D16); leads upload
+# policies instead. fl_medicaid is courier-permissible, queued as a fast follow.
 payers:
   - id: uhc
     name: UnitedHealthcare
     lob: [Commercial, MA]
-    domains: []
+    # library: https://www.uhcprovider.com/en/policies-protocols/commercial-policies/commercial-reimbursement-policies.html
+    domains: [uhcprovider.com, uhc.com]
   - id: aetna
     name: Aetna
     lob: [Commercial, MA]
-    domains: []
+    # library: https://www.aetna.com/cpb/medical/data/cpb_alpha.html
+    domains: [aetna.com]
   - id: cigna
     name: Cigna
     lob: [Commercial]
-    domains: []
+    # library: https://static.cigna.com/assets/chcp/resourceLibrary/coveragePolicies/index.html
+    domains: [cigna.com, static.cigna.com]
   - id: elevance
     name: Elevance/Anthem
     lob: [Commercial, MA]
-    domains: []
+    # library: https://www.anthem.com/provider/policies/clinical-guidelines/
+    domains: [anthem.com]
   - id: humana
     name: Humana
     lob: [Commercial, MA]
-    domains: []
+    # library: https://provider.humana.com/coverage-claims/claims-payment-policies
+    domains: [provider.humana.com, humana.com, dctm.humana.com, mcp.humana.com]
   - id: fl_blue
     name: Florida Blue
     lob: [Commercial]
-    domains: []
+    # library: https://mcgs.bcbsfl.com/Default
+    domains: [mcgs.bcbsfl.com, floridablue.com]
   - id: fl_medicaid
     name: Florida Medicaid (AHCA)
     lob: [Medicaid]
-    domains: []
+    # library: https://ahca.myflorida.com/medicaid/rules/adopted-rules-service-specific-policies.html
+    domains: [ahca.myflorida.com]
