@@ -26,10 +26,12 @@ suite('job locks and document store', () => {
 
   beforeAll(async () => {
     admin = new pg.Client({ connectionString: adminUrl });
+    admin.on('error', () => {});
     await admin.connect();
     await admin.query(`CREATE DATABASE ${dbName} OWNER migrator`);
     await migrate(urlWith(adminUrl, 'migrator', migratorPw, dbName));
     pool = new pg.Pool({ connectionString: urlWith(adminUrl, 'app', appPw, dbName), max: 5 });
+    pool.on('error', () => {});
     await pool.query(
       `INSERT INTO sources (id, name, publisher, kind, cadence_days, tier)
        VALUES ('test_src', 'Test', 'Test', 'download', 7, 2)`,

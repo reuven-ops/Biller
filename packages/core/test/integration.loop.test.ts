@@ -155,10 +155,12 @@ suite('agent loop end to end (stub client)', () => {
 
   beforeAll(async () => {
     admin = new pg.Client({ connectionString: adminUrl });
+    admin.on('error', () => {});
     await admin.connect();
     await admin.query(`CREATE DATABASE ${dbName} OWNER migrator`);
     await migrate(urlWith(adminUrl, 'migrator', migratorPw, dbName));
     pool = new pg.Pool({ connectionString: urlWith(adminUrl, 'app', appPw, dbName), max: 5 });
+    pool.on('error', () => {});
     await pool.query(
       `INSERT INTO sources (id, name, publisher, kind, cadence_days, tier, enabled, last_success_at)
        VALUES ('cms_ncci_ptp', 'NCCI PTP', 'CMS', 'download', 91, 2, true, now()),

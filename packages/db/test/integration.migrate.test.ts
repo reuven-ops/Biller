@@ -29,6 +29,7 @@ suite('migrate against a real database', () => {
 
   beforeAll(async () => {
     admin = new pg.Client({ connectionString: adminUrl });
+    admin.on('error', () => {});
     await admin.connect();
     await admin.query(`CREATE DATABASE ${dbName} OWNER migrator`);
     migratorUrl = urlWith(adminUrl, 'migrator', migratorPw, dbName);
@@ -52,6 +53,7 @@ suite('migrate against a real database', () => {
 
   it('created the tables from brief section 5', async () => {
     const c = new pg.Client({ connectionString: migratorUrl });
+    c.on('error', () => {});
     await c.connect();
     const res = await c.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`,
@@ -92,6 +94,7 @@ suite('migrate against a real database', () => {
 
   it('app role can INSERT and SELECT but not UPDATE or DELETE on append-only tables', async () => {
     const c = new pg.Client({ connectionString: appUrl });
+    c.on('error', () => {});
     await c.connect();
     const inserted = await c.query<{ id: string }>(
       `INSERT INTO qa_log (question_text) VALUES ('test question') RETURNING id`,
@@ -114,6 +117,7 @@ suite('migrate against a real database', () => {
 
   it('app role cannot run DDL or write the migration ledger', async () => {
     const c = new pg.Client({ connectionString: appUrl });
+    c.on('error', () => {});
     await c.connect();
     await expect(c.query(`CREATE TABLE should_fail (id int)`)).rejects.toThrow(/permission denied/);
     await expect(
@@ -124,6 +128,7 @@ suite('migrate against a real database', () => {
 
   it('app role has normal DML elsewhere', async () => {
     const c = new pg.Client({ connectionString: appUrl });
+    c.on('error', () => {});
     await c.connect();
     await c.query(
       `INSERT INTO sources (id, name, publisher, kind, cadence_days, tier)

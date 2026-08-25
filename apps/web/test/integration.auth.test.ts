@@ -36,10 +36,12 @@ suite('web auth against a real database', () => {
   beforeAll(async () => {
     process.env['SESSION_SECRET'] = 'integration-test-secret';
     admin = new pg.Client({ connectionString: adminUrl });
+    admin.on('error', () => {});
     await admin.connect();
     await admin.query(`CREATE DATABASE ${dbName} OWNER migrator`);
     await migrate(urlWith(adminUrl, 'migrator', migratorPw, dbName));
     pool = new pg.Pool({ connectionString: urlWith(adminUrl, 'app', appPw, dbName), max: 3 });
+    pool.on('error', () => {});
   }, 60000);
 
   afterAll(async () => {
