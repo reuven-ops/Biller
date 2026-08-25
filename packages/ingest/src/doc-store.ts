@@ -3,6 +3,15 @@
 // change_event (brief section 8.1, 8.3, 8.7).
 import type { Pool, PoolClient, Tier } from '@advisor/db';
 
+/** Postgres text and jsonb reject NUL bytes; published files occasionally carry them. */
+export function pgSafe(s: string): string {
+  return s.replaceAll('\u0000', '');
+}
+
+function pgSafeJson(value: Record<string, unknown>): string {
+  return JSON.stringify(value).replaceAll('\\u0000', '');
+}
+
 export interface UpsertDocumentInput {
   sourceId: string;
   externalId: string;
@@ -54,7 +63,7 @@ export async function upsertDocument(
       input.sourceId,
       input.externalId,
       input.docType,
-      input.title,
+      pgSafe(input.title),
       input.url,
       input.versionHash,
       input.effectiveDate,
@@ -66,7 +75,7 @@ export async function upsertDocument(
       input.lob,
       input.clientId,
       input.storagePath,
-      JSON.stringify(input.metadata),
+      pgSafeJson(input.metadata),
     ],
   );
   const documentId = inserted.rows[0]?.id;
@@ -91,6 +100,50 @@ export async function upsertDocument(
     [documentId, `First version of ${input.externalId}`],
   );
   return { documentId, outcome: 'new', supersededDocumentId: null };
+}
+
+export interface WithDocumentResult {
+  outcome: 'unchanged' | 'new' | 'revised';
+  documentId: string | null;
+  rowsWritten: number;
+}
+
+/**
+ * The safe load pattern (brief section 8.8): the document row and its data rows
+ * commit together, so a failure mid-load leaves no head document row behind and the
+ * next run retries the whole load instead of skipping it as unchanged.
+ */
+export async function withDocument(
+  pool: Pool,
+  input: UpsertDocumentInput,
+  load: (client: PoolClient, documentId: string) => Promise<number>,
+): Promise<WithDocumentResult> {
+  const existing = await pool.query<{ id: string; version_hash: string }>(
+    `SELECT id, version_hash FROM documents
+     WHERE source_id = $1 AND external_id = $2 AND superseded_by IS NULL
+     ORDER BY retrieved_at DESC LIMIT 1`,
+    [input.sourceId, input.externalId],
+  );
+  if (existing.rows[0]?.version_hash === input.versionHash) {
+    return { outcome: 'unchanged', documentId: existing.rows[0].id, rowsWritten: 0 };
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const doc = await upsertDocument(client, input);
+    const rowsWritten = await load(client, doc.documentId);
+    await client.query('COMMIT');
+    return {
+      outcome: doc.outcome === 'unchanged' ? 'new' : doc.outcome,
+      documentId: doc.documentId,
+      rowsWritten,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export interface ChunkInput {
@@ -120,16 +173,16 @@ export async function replaceChunks(
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [
         documentId,
-        c.sectionPath,
+        pgSafe(c.sectionPath),
         c.ordinal,
-        c.text,
+        pgSafe(c.text),
         c.tokenCount,
         c.tier,
         c.clientId,
         c.effectiveDate,
         c.retiredDate,
         c.codesMentioned,
-        JSON.stringify(c.metadata ?? {}),
+        pgSafeJson(c.metadata ?? {}),
       ],
     );
   }

@@ -8,9 +8,9 @@ sources:
     kind: download
     cadence_days: 7
     tier: 3
-    license_required: true # CMS end-user license attestation
+    license_required: true # CMS end-user license attestation (D7); token flow per D11
     enabled: true
-    base_url: ''
+    base_url: 'https://api.coverage.cms.gov'
   - id: cms_ncci_ptp
     name: NCCI PTP edits, practitioner services
     publisher: CMS

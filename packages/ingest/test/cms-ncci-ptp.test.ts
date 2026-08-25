@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findPtpFileLinks, parsePtpTxt } from '../src/couriers/cms-ncci-ptp.js';
+import { dedupePtpRows, findPtpFileLinks, parsePtpTxt } from '../src/couriers/cms-ncci-ptp.js';
 
 const FIXTURES = join(import.meta.dirname, '..', '..', '..', 'evals', 'fixtures', 'cms_ncci_ptp');
 
@@ -35,6 +35,28 @@ describe('cms_ncci_ptp parser', () => {
       expect(r.effectiveDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(['0', '1', '9']).toContain(r.modifierIndicator);
     }
+  });
+
+  it('dedupes repeated keys keeping the row still in force (real duplicates from v322r0)', () => {
+    // Both cases observed in ccipra-v322r0-f1.TXT (docs/SOURCES.md section 2).
+    const parsed = parsePtpTxt(
+      Buffer.from(
+        [
+          '13121\t13120\t\t19960101\t19960101\t9\tCPT Manual or CMS manual coding instruction',
+          '13121\t13120\t*\t19960101\t*\t0\tCPT Manual or CMS manual coding instruction',
+          '17000\t17281\t\t19990701\t20041231\t1\tMutually exclusive procedures',
+          '17000\t17281\t\t19990701\t19990701\t9\tHCPCS/CPT procedure code definition',
+        ].join('\r\n'),
+        'latin1',
+      ),
+    );
+    const deduped = dedupePtpRows(parsed);
+    expect(deduped).toHaveLength(2);
+    const first = deduped.find((r) => r.column1 === '13121')!;
+    expect(first.deletionDate).toBeNull(); // active row wins
+    expect(first.modifierIndicator).toBe('0');
+    const second = deduped.find((r) => r.column1 === '17000')!;
+    expect(second.deletionDate).toBe('2004-12-31'); // later deletion wins
   });
 
   it('finds the four current-version file links on the real page excerpt', () => {

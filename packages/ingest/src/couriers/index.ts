@@ -14,6 +14,7 @@ import { cmsTherapyCourier } from './cms-therapy.js';
 import { oigWorkplanCourier } from './oig-workplan.js';
 import { fedregCourier } from './fedreg.js';
 import { cmsMlnCourier } from './cms-mln.js';
+import { cmsMcdCourier } from './cms-mcd.js';
 
 export const ALL_COURIERS: Courier[] = [
   cmsNcciPtpCourier,
@@ -28,4 +29,5 @@ export const ALL_COURIERS: Courier[] = [
   oigWorkplanCourier,
   fedregCourier,
   cmsMlnCourier,
+  cmsMcdCourier,
 ];

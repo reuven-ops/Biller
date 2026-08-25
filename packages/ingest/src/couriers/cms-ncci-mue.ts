@@ -3,7 +3,7 @@
 // indicator, or rationale changed, and codes missing from the new snapshot get a
 // deletion_date. Effective dates ride on the file name (docs/SOURCES.md).
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
-import { upsertDocument } from '../doc-store.js';
+import { withDocument } from '../doc-store.js';
 import { csvRows, zipEntries } from '../formats.js';
 
 export interface MueRowParsed {
@@ -81,33 +81,49 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   if (!csvEntry) throw new Error(`no CSV entry in ${fileUrl}`);
   const parsed = parseMueCsv(csvEntry.data, csvEntry.name);
 
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_ncci_mue',
-    externalId: 'mue-practitioner',
-    docType: 'mue_table',
-    title: `NCCI Practitioner Services MUE Table, effective ${parsed.effectiveDate}`,
-    url: fileUrl,
-    versionHash: artifact.sha256,
-    effectiveDate: parsed.effectiveDate,
-    revisionDate: null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: { entry: csvEntry.name, rows: parsed.rows.length },
-  });
-  if (doc.outcome === 'unchanged') {
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_ncci_mue',
+      externalId: 'mue-practitioner',
+      docType: 'mue_table',
+      title: `NCCI Practitioner Services MUE Table, effective ${parsed.effectiveDate}`,
+      url: fileUrl,
+      versionHash: artifact.sha256,
+      effectiveDate: parsed.effectiveDate,
+      revisionDate: null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: { entry: csvEntry.name, rows: parsed.rows.length },
+    },
+    async (client) => loadMueRows(client, parsed, csvEntry.name, ctx.limit),
+  );
+  if (result.outcome === 'unchanged') {
     return { rowsWritten: 0, notes: `unchanged (${parsed.effectiveDate})` };
   }
+  return {
+    rowsWritten: result.rowsWritten,
+    notes: `snapshot ${parsed.effectiveDate}, ${parsed.rows.length} codes in file`,
+  };
+}
 
-  const rows = ctx.limit ? parsed.rows.slice(0, ctx.limit) : parsed.rows;
-  const fileVersion = csvEntry.name;
+type Db = { query: (sql: string, params?: unknown[]) => Promise<{ rowCount: number | null }> };
+
+async function loadMueRows(
+  db: Db,
+  parsed: MueFileParsed,
+  fileVersion: string,
+  limit: number | undefined,
+): Promise<number> {
+  const rows = limit ? parsed.rows.slice(0, limit) : parsed.rows;
   let written = 0;
   for (const row of rows) {
-    const res = await ctx.pool.query(
+    const res = await db.query(
       `INSERT INTO mue (code, mue_value, adjudication_indicator, rationale, effective_date, file_version)
        SELECT $1, $2, $3, $4, $5, $6
        WHERE NOT EXISTS (
@@ -134,8 +150,8 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   }
 
   // Snapshot deletion marking: codes that disappeared from the current full snapshot.
-  if (!ctx.limit) {
-    const del = await ctx.pool.query(
+  if (!limit) {
+    const del = await db.query(
       `UPDATE mue SET deletion_date = $1
        WHERE deletion_date IS NULL AND effective_date < $1
          AND NOT (code = ANY($2::text[]))`,
@@ -144,10 +160,7 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
     written += del.rowCount ?? 0;
   }
 
-  return {
-    rowsWritten: written,
-    notes: `snapshot ${parsed.effectiveDate}, ${parsed.rows.length} codes in file`,
-  };
+  return written;
 }
 
 export const cmsNcciMueCourier: Courier = { sourceId: 'cms_ncci_mue', run };

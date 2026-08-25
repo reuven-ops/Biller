@@ -3,7 +3,7 @@
 // carries per-row effective date, deletion date, modifier indicator, and rationale.
 import { optionalEnv } from '@advisor/db';
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
-import { upsertDocument } from '../doc-store.js';
+import { withDocument } from '../doc-store.js';
 import { zipEntries } from '../formats.js';
 
 export interface PtpRowParsed {
@@ -54,6 +54,29 @@ export function parsePtpTxt(data: Buffer): PtpRowParsed[] {
   return rows;
 }
 
+/**
+ * The published files occasionally repeat a (column1, column2, effective_date) key,
+ * observed when a pair was deleted and re-added the same day with a different
+ * indicator. The row still in force wins: null deletion_date first, then the later
+ * deletion_date.
+ */
+export function dedupePtpRows(rows: PtpRowParsed[]): PtpRowParsed[] {
+  const byKey = new Map<string, PtpRowParsed>();
+  for (const row of rows) {
+    const key = `${row.column1}|${row.column2}|${row.effectiveDate}`;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, row);
+      continue;
+    }
+    const keepNew =
+      row.deletionDate === null ||
+      (existing.deletionDate !== null && row.deletionDate > existing.deletionDate);
+    if (keepNew) byKey.set(key, row);
+  }
+  return [...byKey.values()];
+}
+
 export interface PtpFileLink {
   url: string;
   version: string; // e.g. v322r0
@@ -83,7 +106,7 @@ export function findPtpFileLinks(html: string, baseUrl: string): PtpFileLink[] {
 }
 
 async function loadRows(
-  ctx: CourierContext,
+  db: { query: (sql: string, params?: unknown[]) => Promise<{ rowCount: number | null }> },
   rows: PtpRowParsed[],
   fileVersion: string,
 ): Promise<number> {
@@ -106,7 +129,7 @@ async function loadRows(
         fileVersion,
       );
     });
-    const res = await ctx.pool.query(
+    const res = await db.query(
       `INSERT INTO ncci_ptp (column1, column2, modifier_indicator, effective_date,
          deletion_date, rationale, file_version)
        VALUES ${values.join(',')}
@@ -150,31 +173,36 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   let totalParsed = 0;
   for (const link of parts) {
     const artifact = await ctx.fetcher.fetchArtifact(`${link.url}?agree=yes`, 'cms_ncci_ptp');
-    const doc = await upsertDocument(ctx.pool, {
-      sourceId: 'cms_ncci_ptp',
-      externalId: `ncci-ptp-practitioner-f${link.part}`,
-      docType: 'ncci_ptp_file',
-      title: `NCCI Practitioner PTP Edits ${link.version} part ${link.part}`,
-      url: link.url,
-      versionHash: artifact.sha256,
-      effectiveDate: null,
-      revisionDate: null,
-      retiredDate: null,
-      tier: 2,
-      jurisdiction: [],
-      payer: null,
-      lob: null,
-      clientId: null,
-      storagePath: artifact.storagePath,
-      metadata: { version: link.version, part: link.part, attested: 'agree=yes (D7)' },
-    });
-    if (doc.outcome === 'unchanged') continue;
     const txtEntry = zipEntries(artifact.body, /\.txt$/i)[0];
     if (!txtEntry) throw new Error(`no TXT entry in ${link.url}`);
-    let rows = parsePtpTxt(txtEntry.data);
-    totalParsed += rows.length;
-    if (ctx.limit) rows = rows.slice(0, ctx.limit);
-    written += await loadRows(ctx, rows, link.version);
+    const result = await withDocument(
+      ctx.pool,
+      {
+        sourceId: 'cms_ncci_ptp',
+        externalId: `ncci-ptp-practitioner-f${link.part}`,
+        docType: 'ncci_ptp_file',
+        title: `NCCI Practitioner PTP Edits ${link.version} part ${link.part}`,
+        url: link.url,
+        versionHash: artifact.sha256,
+        effectiveDate: null,
+        revisionDate: null,
+        retiredDate: null,
+        tier: 2,
+        jurisdiction: [],
+        payer: null,
+        lob: null,
+        clientId: null,
+        storagePath: artifact.storagePath,
+        metadata: { version: link.version, part: link.part, attested: 'agree=yes (D7)' },
+      },
+      async (client) => {
+        let rows = dedupePtpRows(parsePtpTxt(txtEntry.data));
+        totalParsed += rows.length;
+        if (ctx.limit) rows = rows.slice(0, ctx.limit);
+        return loadRows(client, rows, link.version);
+      },
+    );
+    written += result.rowsWritten;
   }
   return {
     rowsWritten: written,

@@ -4,7 +4,7 @@
 // (only CPT Level I is license-gated) and are stored. Quarters are loaded as versions
 // so historical DOS lookups hit the version in force.
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
-import { upsertDocument } from '../doc-store.js';
+import { withDocument } from '../doc-store.js';
 import { cellToIsoDate, xlsxRows, zipEntries } from '../formats.js';
 
 export interface HcpcsRowParsed {
@@ -85,26 +85,6 @@ async function loadQuarter(
   link: HcpcsQuarterLink,
 ): Promise<{ written: number; parsed: number; unchanged: boolean }> {
   const artifact = await ctx.fetcher.fetchArtifact(link.url, 'cms_hcpcs');
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_hcpcs',
-    externalId: `hcpcs-${link.version}`,
-    docType: 'hcpcs_quarterly',
-    title: `HCPCS Level II quarterly update ${link.version}`,
-    url: link.url,
-    versionHash: artifact.sha256,
-    effectiveDate: `${link.version}-01`,
-    revisionDate: null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: {},
-  });
-  if (doc.outcome === 'unchanged') return { written: 0, parsed: 0, unchanged: true };
-
   const entry = zipEntries(artifact.body, /HCPC.*ANWEB.*\.xlsx$/i).find(
     (e) => !/transaction|correction/i.test(e.name),
   );
@@ -113,6 +93,39 @@ async function loadQuarter(
   const parsed = rows.length;
   if (ctx.limit) rows = rows.slice(0, ctx.limit);
 
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_hcpcs',
+      externalId: `hcpcs-${link.version}`,
+      docType: 'hcpcs_quarterly',
+      title: `HCPCS Level II quarterly update ${link.version}`,
+      url: link.url,
+      versionHash: artifact.sha256,
+      effectiveDate: `${link.version}-01`,
+      revisionDate: null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: {},
+    },
+    async (client) => loadHcpcsRows(client, rows, link),
+  );
+  if (result.outcome === 'unchanged') return { written: 0, parsed: 0, unchanged: true };
+  return { written: result.rowsWritten, parsed, unchanged: false };
+}
+
+type Db = { query: (sql: string, params?: unknown[]) => Promise<{ rowCount: number | null }> };
+
+async function loadHcpcsRows(
+  db: Db,
+  rows: HcpcsRowParsed[],
+  link: HcpcsQuarterLink,
+): Promise<number> {
   let written = 0;
   const BATCH = 500;
   for (let i = 0; i < rows.length; i += BATCH) {
@@ -137,7 +150,7 @@ async function loadQuarter(
     });
     // codes.status carries the HCPCS coverage code (COV); the per-quarter action code
     // is not persisted, it only describes the change relative to the prior quarter.
-    const res = await ctx.pool.query(
+    const res = await db.query(
       `INSERT INTO codes (code_set, code, short_desc, long_desc, status, effective_date, end_date, version)
        SELECT v.code_set, v.code, v.short_desc, v.long_desc, v.status, v.eff::date, v.term::date, v.version
        FROM (VALUES ${values.join(',')}) AS v(code_set, code, short_desc, long_desc, status, eff, term, version, action)
@@ -151,7 +164,7 @@ async function loadQuarter(
     );
     written += res.rowCount ?? 0;
   }
-  return { written, parsed, unchanged: false };
+  return written;
 }
 
 async function run(ctx: CourierContext): Promise<CourierResult> {

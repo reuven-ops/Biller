@@ -5,7 +5,7 @@
 // CPT text and is stored only when CPT_LICENSE_MODE=licensed.
 import { optionalEnv } from '@advisor/db';
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
-import { upsertDocument } from '../doc-store.js';
+import { withDocument } from '../doc-store.js';
 import { xlsxRows, zipEntries } from '../formats.js';
 
 export interface TelehealthRowParsed {
@@ -66,45 +66,50 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   const year = yearFromUrl(artifact.finalUrl) ?? yearFromUrl(zipUrl);
   if (!year) throw new Error(`cannot read calendar year from ${artifact.finalUrl}`);
 
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_telehealth_list',
-    externalId: `telehealth-cy${year}`,
-    docType: 'telehealth_list',
-    title: `List of Medicare Telehealth Services, CY ${year}`,
-    url: artifact.finalUrl,
-    versionHash: artifact.sha256,
-    effectiveDate: `${year}-01-01`,
-    revisionDate: null,
-    retiredDate: `${year}-12-31`,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: { year },
-  });
-  if (doc.outcome === 'unchanged') return { rowsWritten: 0, notes: `unchanged (CY ${year})` };
-
   const entry = zipEntries(artifact.body, /\.xlsx$/i)[0];
   if (!entry) throw new Error(`no xlsx entry in ${zipUrl}`);
   let rows = parseTelehealthRows(xlsxRows(entry.data));
   if (ctx.limit) rows = rows.slice(0, ctx.limit);
-
   const licensed = optionalEnv('CPT_LICENSE_MODE', 'none') === 'licensed';
-  let written = 0;
-  for (const r of rows) {
-    const res = await ctx.pool.query(
-      `INSERT INTO telehealth_services (code, year, action, short_desc, file_version)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (code, year) DO UPDATE SET
-         action = EXCLUDED.action, short_desc = EXCLUDED.short_desc,
-         file_version = EXCLUDED.file_version`,
-      [r.code, year, r.action, licensed ? r.shortDesc : null, `cy${year}`],
-    );
-    written += res.rowCount ?? 0;
-  }
-  return { rowsWritten: written, notes: `CY ${year}, ${rows.length} services` };
+
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_telehealth_list',
+      externalId: `telehealth-cy${year}`,
+      docType: 'telehealth_list',
+      title: `List of Medicare Telehealth Services, CY ${year}`,
+      url: artifact.finalUrl,
+      versionHash: artifact.sha256,
+      effectiveDate: `${year}-01-01`,
+      revisionDate: null,
+      retiredDate: `${year}-12-31`,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: { year },
+    },
+    async (client) => {
+      let written = 0;
+      for (const r of rows) {
+        const res = await client.query(
+          `INSERT INTO telehealth_services (code, year, action, short_desc, file_version)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (code, year) DO UPDATE SET
+             action = EXCLUDED.action, short_desc = EXCLUDED.short_desc,
+             file_version = EXCLUDED.file_version`,
+          [r.code, year, r.action, licensed ? r.shortDesc : null, `cy${year}`],
+        );
+        written += res.rowCount ?? 0;
+      }
+      return written;
+    },
+  );
+  if (result.outcome === 'unchanged') return { rowsWritten: 0, notes: `unchanged (CY ${year})` };
+  return { rowsWritten: result.rowsWritten, notes: `CY ${year}, ${rows.length} services` };
 }
 
 export const cmsTelehealthCourier: Courier = { sourceId: 'cms_telehealth_list', run };

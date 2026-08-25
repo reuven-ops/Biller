@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto';
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { estimateTokens, extractCodes } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { csvRows } from '../formats.js';
 import { htmlToText } from '../html.js';
 
@@ -77,38 +77,42 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   let written = 0;
   for (const item of targets) {
     const body = `${item.title}\n\n${item.narrative}\n\nStatus: active. Component: ${item.component}. Expected issue FY ${item.estFy}.`;
-    const doc = await upsertDocument(ctx.pool, {
-      sourceId: 'oig_workplan',
-      externalId: item.number,
-      docType: 'oig_workplan_item',
-      title: `OIG Work Plan: ${item.title}`,
-      url: 'https://oig.hhs.gov/reports/work-plan/browse-work-plan-projects/',
-      versionHash: sha1ish(body),
-      effectiveDate: item.announced,
-      revisionDate: null,
-      retiredDate: null,
-      tier: 2,
-      jurisdiction: [],
-      payer: null,
-      lob: null,
-      clientId: null,
-      storagePath: artifact.storagePath,
-      metadata: { component: item.component, agencies: item.agencies, est_fy: item.estFy },
-    });
-    if (doc.outcome === 'unchanged') continue;
-    written += await replaceChunks(ctx.pool, doc.documentId, [
+    const result = await withDocument(
+      ctx.pool,
       {
-        sectionPath: item.number,
-        ordinal: 0,
-        text: `OIG Work Plan ${item.number}\n\n${body}`,
-        tokenCount: estimateTokens(body),
-        tier: 2,
-        clientId: null,
+        sourceId: 'oig_workplan',
+        externalId: item.number,
+        docType: 'oig_workplan_item',
+        title: `OIG Work Plan: ${item.title}`,
+        url: 'https://oig.hhs.gov/reports/work-plan/browse-work-plan-projects/',
+        versionHash: sha1ish(body),
         effectiveDate: item.announced,
+        revisionDate: null,
         retiredDate: null,
-        codesMentioned: extractCodes(body),
+        tier: 2,
+        jurisdiction: [],
+        payer: null,
+        lob: null,
+        clientId: null,
+        storagePath: artifact.storagePath,
+        metadata: { component: item.component, agencies: item.agencies, est_fy: item.estFy },
       },
-    ]);
+      async (client, documentId) =>
+        replaceChunks(client, documentId, [
+          {
+            sectionPath: item.number,
+            ordinal: 0,
+            text: `OIG Work Plan ${item.number}\n\n${body}`,
+            tokenCount: estimateTokens(body),
+            tier: 2,
+            clientId: null,
+            effectiveDate: item.announced,
+            retiredDate: null,
+            codesMentioned: extractCodes(body),
+          },
+        ]),
+    );
+    written += result.rowsWritten;
   }
 
   // Items no longer active: stamp retired_date so DOS-filtered retrieval drops them.

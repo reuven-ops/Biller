@@ -4,7 +4,7 @@
 // therapy_thresholds. Prior years arrive through cms_mln and fedreg (docs/SOURCES.md).
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { chunkSections } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { htmlSections, htmlToText } from '../html.js';
 
 export interface TherapyThresholds {
@@ -61,56 +61,62 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   const pageText = htmlToText(html);
   const thresholds = parseTherapyThresholds(pageText);
 
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_therapy',
-    externalId: thresholds ? `therapy-services-cy${thresholds.year}` : 'therapy-services',
-    docType: 'therapy_page',
-    title: `CMS Therapy Services page${thresholds ? `, CY ${thresholds.year}` : ''}`,
-    url: artifact.finalUrl,
-    versionHash: artifact.sha256,
-    effectiveDate: thresholds ? `${thresholds.year}-01-01` : null,
-    revisionDate: null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: thresholds ? { thresholds: { ...thresholds } } : { thresholds: null },
-  });
-  if (doc.outcome === 'unchanged') {
-    return { rowsWritten: 0, notes: 'unchanged' };
-  }
-
-  let written = 0;
-  if (thresholds) {
-    const res = await ctx.pool.query(
-      `INSERT INTO therapy_thresholds (year, kx_pt_slp, kx_ot, mr_pt_slp, mr_ot, source_document_id)
-       VALUES ($1, $2, $3, $4, $4, $5)
-       ON CONFLICT (year) DO UPDATE SET
-         kx_pt_slp = EXCLUDED.kx_pt_slp, kx_ot = EXCLUDED.kx_ot,
-         mr_pt_slp = EXCLUDED.mr_pt_slp, mr_ot = EXCLUDED.mr_ot,
-         source_document_id = EXCLUDED.source_document_id`,
-      [thresholds.year, thresholds.kxPtSlp, thresholds.kxOt, thresholds.mrAmount, doc.documentId],
-    );
-    written += res.rowCount ?? 0;
-  }
-
   let sections = htmlSections(html, 'rxbodyfield');
   if (ctx.limit) sections = sections.slice(0, ctx.limit);
-  const chunks = chunkSections('CMS Therapy Services page', sections).map((c) => ({
-    sectionPath: c.sectionPath,
-    ordinal: c.ordinal,
-    text: c.text,
-    tokenCount: c.tokenCount,
-    tier: 2 as const,
-    clientId: null,
-    effectiveDate: thresholds ? `${thresholds.year}-01-01` : null,
-    retiredDate: null,
-    codesMentioned: c.codesMentioned,
-  }));
-  written += await replaceChunks(ctx.pool, doc.documentId, chunks);
+
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_therapy',
+      externalId: thresholds ? `therapy-services-cy${thresholds.year}` : 'therapy-services',
+      docType: 'therapy_page',
+      title: `CMS Therapy Services page${thresholds ? `, CY ${thresholds.year}` : ''}`,
+      url: artifact.finalUrl,
+      versionHash: artifact.sha256,
+      effectiveDate: thresholds ? `${thresholds.year}-01-01` : null,
+      revisionDate: null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: thresholds ? { thresholds: { ...thresholds } } : { thresholds: null },
+    },
+    async (client, documentId) => {
+      let written = 0;
+      if (thresholds) {
+        const res = await client.query(
+          `INSERT INTO therapy_thresholds (year, kx_pt_slp, kx_ot, mr_pt_slp, mr_ot, source_document_id)
+           VALUES ($1, $2, $3, $4, $4, $5)
+           ON CONFLICT (year) DO UPDATE SET
+             kx_pt_slp = EXCLUDED.kx_pt_slp, kx_ot = EXCLUDED.kx_ot,
+             mr_pt_slp = EXCLUDED.mr_pt_slp, mr_ot = EXCLUDED.mr_ot,
+             source_document_id = EXCLUDED.source_document_id`,
+          [thresholds.year, thresholds.kxPtSlp, thresholds.kxOt, thresholds.mrAmount, documentId],
+        );
+        written += res.rowCount ?? 0;
+      }
+      const chunks = chunkSections('CMS Therapy Services page', sections).map((c) => ({
+        sectionPath: c.sectionPath,
+        ordinal: c.ordinal,
+        text: c.text,
+        tokenCount: c.tokenCount,
+        tier: 2 as const,
+        clientId: null,
+        effectiveDate: thresholds ? `${thresholds.year}-01-01` : null,
+        retiredDate: null,
+        codesMentioned: c.codesMentioned,
+      }));
+      written += await replaceChunks(client, documentId, chunks);
+      return written;
+    },
+  );
+  if (result.outcome === 'unchanged') {
+    return { rowsWritten: 0, notes: 'unchanged' };
+  }
+  const written = result.rowsWritten;
   return {
     rowsWritten: written,
     notes: thresholds

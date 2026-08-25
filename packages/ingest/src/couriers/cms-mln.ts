@@ -5,7 +5,7 @@
 // carry the newest transmittals (docs/SOURCES.md).
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { chunkSections, estimateTokens, extractCodes } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { extractPdfLines, sectionsFromLines } from '../pdf.js';
 import { htmlToText } from '../html.js';
 
@@ -82,60 +82,76 @@ async function ingestTransmittal(ctx: CourierContext, ref: TransmittalRef): Prom
   const page = await ctx.fetcher.fetchArtifact(ref.url, 'cms_mln', { accept: 'text/html' });
   const detail = parseTransmittalDetail(page.body.toString('utf8'), page.finalUrl);
   const externalId = `transmittal-${detail.transmittalNumber.toLowerCase()}`;
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_mln',
-    externalId,
-    docType: 'transmittal',
-    title: `Transmittal ${detail.transmittalNumber}: ${detail.subject || '(no subject parsed)'}`,
-    url: ref.url,
-    versionHash: page.sha256,
-    effectiveDate: detail.implementationDate ?? detail.issueDate,
-    revisionDate: detail.issueDate,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: page.storagePath,
-    metadata: {
-      cr_number: detail.crNumber,
-      year: ref.year,
-      transmittal_pdf: detail.transmittalPdfUrl,
-      article_pdf: detail.articlePdfUrl,
-    },
-  });
-  if (doc.outcome === 'unchanged') return 0;
 
-  let written = 0;
+  // Skip the article PDF fetch when this page version is already stored.
+  const head = await ctx.pool.query<{ version_hash: string }>(
+    `SELECT version_hash FROM documents
+     WHERE source_id = 'cms_mln' AND external_id = $1 AND superseded_by IS NULL
+     ORDER BY retrieved_at DESC LIMIT 1`,
+    [externalId],
+  );
+  if (head.rows[0]?.version_hash === page.sha256) return 0;
+
   // The MLN Matters article PDF, when present, is the biller-facing narrative worth
   // chunking; the transmittal page itself gets one metadata chunk.
+  let articleChunks: ReturnType<typeof chunkSections> | null = null;
   if (detail.articlePdfUrl) {
     const pdf = await ctx.fetcher.fetchArtifact(detail.articlePdfUrl, 'cms_mln');
     const extraction = await extractPdfLines(new Uint8Array(pdf.body));
     if (extraction.quality === 'ok') {
       const sections = sectionsFromLines(extraction.lines);
-      const chunks = chunkSections(
+      articleChunks = chunkSections(
         `MLN Matters ${detail.crNumber ? `CR ${detail.crNumber}` : detail.transmittalNumber}`,
         sections,
-      ).map((c) => ({
-        sectionPath: c.sectionPath,
-        ordinal: c.ordinal + 1,
-        text: c.text,
-        tokenCount: c.tokenCount,
-        tier: 2 as const,
-        clientId: null,
-        effectiveDate: detail.implementationDate ?? detail.issueDate,
-        retiredDate: null,
-        codesMentioned: c.codesMentioned,
-      }));
-      const summary = summaryChunk(detail);
-      written += await replaceChunks(ctx.pool, doc.documentId, [summary, ...chunks]);
-      return written;
+      );
     }
   }
-  written += await replaceChunks(ctx.pool, doc.documentId, [summaryChunk(detail)]);
-  return written;
+
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_mln',
+      externalId,
+      docType: 'transmittal',
+      title: `Transmittal ${detail.transmittalNumber}: ${detail.subject || '(no subject parsed)'}`,
+      url: ref.url,
+      versionHash: page.sha256,
+      effectiveDate: detail.implementationDate ?? detail.issueDate,
+      revisionDate: detail.issueDate,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: page.storagePath,
+      metadata: {
+        cr_number: detail.crNumber,
+        year: ref.year,
+        transmittal_pdf: detail.transmittalPdfUrl,
+        article_pdf: detail.articlePdfUrl,
+      },
+    },
+    async (client, documentId) => {
+      const summary = summaryChunk(detail);
+      if (articleChunks) {
+        const chunks = articleChunks.map((c) => ({
+          sectionPath: c.sectionPath,
+          ordinal: c.ordinal + 1,
+          text: c.text,
+          tokenCount: c.tokenCount,
+          tier: 2 as const,
+          clientId: null,
+          effectiveDate: detail.implementationDate ?? detail.issueDate,
+          retiredDate: null,
+          codesMentioned: c.codesMentioned,
+        }));
+        return replaceChunks(client, documentId, [summary, ...chunks]);
+      }
+      return replaceChunks(client, documentId, [summary]);
+    },
+  );
+  return result.rowsWritten;
 }
 
 function summaryChunk(detail: TransmittalDetail): {

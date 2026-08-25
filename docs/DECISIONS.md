@@ -62,3 +62,21 @@ Numbered, newest last. Each entry states the decision, the reason, and what woul
 1. Decision: the X12 CARC and RARC list pages are publicly viewable, but the X12 Website Terms of Use expressly prohibit data mining, robots, and extraction methods, and prohibit using the Materials in connection with AI or machine learning tools, including as retrieval grounding. Under brief hard rule 11 (never circumvent terms of use; flag and stop) the source is disabled and no courier scrapes it. The saved terms page is kept in the discovery record.
 2. What Reuven should do: license the X12 External Code List (ecommerce.x12.org) or obtain written permission through X12's IP-use request process. Licensed distributions are also machine-readable, which removes the scraping question entirely.
 3. Impact until licensed: remit_behavior (Phase 4) aggregates by raw CARC and RARC codes from ClinicMind's own remittance data, without X12 description labels. The brief listed this source as public; the divergence is recorded here and in docs/SOURCES.md per rule 19.2.
+
+## D11. cms_mcd ingests through the Coverage API, not the bulk zips (2026-08-25)
+
+1. Decision: the MCD bulk zip downloads are gated by an interactive license modal on the downloads page, so the courier uses the Coverage API (api.coverage.cms.gov) instead: reports and NCD data are keyless; LCD and Article detail endpoints take a one-hour bearer token that the API's own license-agreement endpoint issues, which is the API's documented acceptance mechanism for the same AMA, ADA, and AHA end-user terms. Attestation is governed by CMS_LICENSE_ATTESTATION (D7). The hcpc-code child endpoints, which carry CPT descriptors, are never called.
+2. Reason: the brief (section 6.1) names the Coverage API as the sanctioned fallback and already plans for the CMS end-user license attestation. Fetching the zips headlessly would skip the modal; the API path accepts the same terms through the interface built for programs.
+3. What would change it: the API adding pagination or rate limits that make weekly refreshes impractical; then revisit the bulk download with a recorded attestation flow.
+
+## D12. Local inference models: bge-base-en-v1.5 and bge-reranker-base (2026-08-25)
+
+1. Decision: embeddings come from Xenova/bge-base-en-v1.5 (768 dimensions, fp32 ONNX) and reranking from Xenova/bge-reranker-base, both running in process on CPU through Transformers.js with model files under MODELS_DIR, baked into the Docker images at build time. Queries carry the BGE retrieval prefix; passages do not. EMBEDDING_DIM stays 768, matching the D4 default, so no migration change.
+2. Reason: both are brief-listed candidates, available as ONNX without network access at runtime, and validated in this environment: identical text yields identical vectors, a therapy query scores 0.82 against a therapy passage versus 0.39 against an unrelated one, and the reranker separates them by 14 points.
+3. What would change it: retrieval quality findings in eval; nomic-embed-text-v1.5 (longer context) is the fallback candidate.
+
+## D13. Temperature on the composer and verifier models (2026-08-25)
+
+1. Decision: the brief requires temperature 0 for composer and verifier. The pinned models (claude-sonnet-5 family and newer) reject sampling parameters outright (the API returns 400 for temperature, top_p, top_k), so the client wrapper sends no sampling parameters on models that reject them and applies temperature 0 only where the model accepts it. The determinism intent stands: no sampling parameter is ever raised above default, prompts are versioned, and model IDs are pinned from env.
+2. Reason: complying with the letter of "temperature 0" on these models is impossible; the wrapper implements the closest compliant behavior and records it here.
+3. What would change it: the API reintroducing sampling control on these models.

@@ -5,7 +5,7 @@
 // templated (docs/SOURCES.md).
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { chunkSections } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { extractPdfLines, sectionsFromLines } from '../pdf.js';
 import { zipEntries } from '../formats.js';
 
@@ -91,54 +91,59 @@ async function loadRelease(
 ): Promise<{ written: number; unchanged: boolean }> {
   const artifact = await ctx.fetcher.fetchArtifact(release.url, 'cms_icd10cm');
   const window = fyWindow(release.fy);
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_icd10cm',
-    externalId: `icd10cm-order-fy${release.fy}`,
-    docType: 'icd10cm_order',
-    title: `ICD-10-CM Code Descriptions in Tabular Order, FY ${release.fy}${release.midYear ? ' (April update)' : ''}`,
-    url: release.url,
-    versionHash: artifact.sha256,
-    effectiveDate: window.start,
-    revisionDate: release.midYear ? `${release.fy}-04-01` : null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: { fy: release.fy, midYear: release.midYear },
-  });
-  if (doc.outcome === 'unchanged') return { written: 0, unchanged: true };
-
   const entry = zipEntries(artifact.body, /icd10cm_order_\d{4}\.txt$/i)[0];
   if (!entry) throw new Error(`no icd10cm_order file in ${release.url}`);
   let rows = parseOrderFile(entry.data);
   if (ctx.limit) rows = rows.slice(0, ctx.limit);
 
-  let written = 0;
-  const BATCH = 1000;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
-    const values: string[] = [];
-    const params: unknown[] = [];
-    batch.forEach((r, j) => {
-      const o = j * 4;
-      values.push(`($${o + 1},$${o + 2},$${o + 3},$${o + 4})`);
-      params.push(r.code, r.longDesc || r.shortDesc, r.billable, `fy${release.fy}`);
-    });
-    const res = await ctx.pool.query(
-      `INSERT INTO icd10cm (code, description, billable, effective_date, end_date, version)
-       SELECT v.code, v.description, v.billable::boolean, '${window.start}'::date,
-              '${window.end}'::date, v.version
-       FROM (VALUES ${values.join(',')}) AS v(code, description, billable, version)
-       ON CONFLICT (code, version) DO UPDATE SET
-         description = EXCLUDED.description, billable = EXCLUDED.billable`,
-      params,
-    );
-    written += res.rowCount ?? 0;
-  }
-  return { written, unchanged: false };
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_icd10cm',
+      externalId: `icd10cm-order-fy${release.fy}`,
+      docType: 'icd10cm_order',
+      title: `ICD-10-CM Code Descriptions in Tabular Order, FY ${release.fy}${release.midYear ? ' (April update)' : ''}`,
+      url: release.url,
+      versionHash: artifact.sha256,
+      effectiveDate: window.start,
+      revisionDate: release.midYear ? `${release.fy}-04-01` : null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: { fy: release.fy, midYear: release.midYear },
+    },
+    async (client) => {
+      let written = 0;
+      const BATCH = 1000;
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const batch = rows.slice(i, i + BATCH);
+        const values: string[] = [];
+        const params: unknown[] = [];
+        batch.forEach((r, j) => {
+          const o = j * 4;
+          values.push(`($${o + 1},$${o + 2},$${o + 3},$${o + 4})`);
+          params.push(r.code, r.longDesc || r.shortDesc, r.billable, `fy${release.fy}`);
+        });
+        const res = await client.query(
+          `INSERT INTO icd10cm (code, description, billable, effective_date, end_date, version)
+           SELECT v.code, v.description, v.billable::boolean, '${window.start}'::date,
+                  '${window.end}'::date, v.version
+           FROM (VALUES ${values.join(',')}) AS v(code, description, billable, version)
+           ON CONFLICT (code, version) DO UPDATE SET
+             description = EXCLUDED.description, billable = EXCLUDED.billable`,
+          params,
+        );
+        written += res.rowCount ?? 0;
+      }
+      return written;
+    },
+  );
+  if (result.outcome === 'unchanged') return { written: 0, unchanged: true };
+  return { written: result.rowsWritten, unchanged: false };
 }
 
 async function run(ctx: CourierContext): Promise<CourierResult> {
@@ -170,27 +175,29 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
   if (guide && !ctx.limit) {
     const artifact = await ctx.fetcher.fetchArtifact(guide.url, 'cms_icd10cm');
     const window = fyWindow(guide.fy);
-    const doc = await upsertDocument(ctx.pool, {
-      sourceId: 'cms_icd10cm',
-      externalId: `icd10cm-guidelines-fy${guide.fy}`,
-      docType: 'icd10cm_guidelines',
-      title: `ICD-10-CM Official Guidelines for Coding and Reporting, FY ${guide.fy}`,
-      url: guide.url,
-      versionHash: artifact.sha256,
-      effectiveDate: window.start,
-      revisionDate: null,
-      retiredDate: null,
-      tier: 2,
-      jurisdiction: [],
-      payer: null,
-      lob: null,
-      clientId: null,
-      storagePath: artifact.storagePath,
-      metadata: { fy: guide.fy },
-    });
-    if (doc.outcome !== 'unchanged') {
-      const extraction = await extractPdfLines(new Uint8Array(artifact.body));
-      if (extraction.quality === 'ok') {
+    const extraction = await extractPdfLines(new Uint8Array(artifact.body));
+    const result = await withDocument(
+      ctx.pool,
+      {
+        sourceId: 'cms_icd10cm',
+        externalId: `icd10cm-guidelines-fy${guide.fy}`,
+        docType: 'icd10cm_guidelines',
+        title: `ICD-10-CM Official Guidelines for Coding and Reporting, FY ${guide.fy}`,
+        url: guide.url,
+        versionHash: artifact.sha256,
+        effectiveDate: window.start,
+        revisionDate: null,
+        retiredDate: null,
+        tier: 2,
+        jurisdiction: [],
+        payer: null,
+        lob: null,
+        clientId: null,
+        storagePath: artifact.storagePath,
+        metadata: { fy: guide.fy },
+      },
+      async (client, documentId) => {
+        if (extraction.quality !== 'ok') return 0;
         const sections = sectionsFromLines(
           extraction.lines,
           /^([A-Z]?\d{0,2}[a-z]?\.?\s?\d{0,2}\.?\)?)\s*[-–—.]?\s+([A-Z].{3,100})$/,
@@ -208,11 +215,16 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
             codesMentioned: c.codesMentioned,
           }),
         );
-        written += await replaceChunks(ctx.pool, doc.documentId, chunks);
-        notes.push(`guidelines fy${guide.fy}: ${chunks.length} chunks`);
-      } else {
-        notes.push(`guidelines fy${guide.fy} flagged poor quality`);
-      }
+        return replaceChunks(client, documentId, chunks);
+      },
+    );
+    if (result.outcome !== 'unchanged') {
+      written += result.rowsWritten;
+      notes.push(
+        extraction.quality === 'ok'
+          ? `guidelines fy${guide.fy}: ${result.rowsWritten} chunks`
+          : `guidelines fy${guide.fy} flagged poor quality`,
+      );
     }
   }
   return { rowsWritten: written, notes: notes.join('; ') };

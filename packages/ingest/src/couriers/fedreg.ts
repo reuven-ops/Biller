@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto';
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { chunkSections } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { sectionsFromLines } from '../pdf.js';
 
 interface FedregListDoc {
@@ -115,32 +115,18 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
       docsSeen++;
       if (ctx.limit && docsSeen > ctx.limit) break;
       const tags = topicTags(d.title);
-      const doc = await upsertDocument(ctx.pool, {
-        sourceId: 'fedreg',
-        externalId: d.document_number,
-        docType: d.type === 'Proposed Rule' ? 'fedreg_proposed_rule' : 'fedreg_rule',
-        title: d.title,
-        url: d.html_url,
-        versionHash: contentHash(d),
-        effectiveDate: d.effective_on ?? d.publication_date,
-        revisionDate: null,
-        retiredDate: null,
-        tier: 1,
-        jurisdiction: [],
-        payer: null,
-        lob: null,
-        clientId: null,
-        storagePath: page.storagePath,
-        metadata: {
-          citation: d.citation,
-          docket_ids: d.docket_ids,
-          publication_date: d.publication_date,
-          tags,
-        },
-      });
-      if (doc.outcome === 'unchanged') continue;
+      const versionHash = contentHash(d);
+      // Skip the full-text fetch when this version is already stored.
+      const head = await ctx.pool.query<{ version_hash: string }>(
+        `SELECT version_hash FROM documents
+         WHERE source_id = 'fedreg' AND external_id = $1 AND superseded_by IS NULL
+         ORDER BY retrieved_at DESC LIMIT 1`,
+        [d.document_number],
+      );
+      if (head.rows[0]?.version_hash === versionHash) continue;
 
       const wantFull = wantsFullText(d, fullTextFrom) && d.raw_text_url && !ctx.limit;
+      let fullTextChunks: ReturnType<typeof chunkSections> | null = null;
       if (wantFull) {
         const raw = await ctx.fetcher.fetchArtifact(d.raw_text_url!, 'fedreg');
         assertNotBlocked(raw.finalUrl);
@@ -149,34 +135,72 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
           text.split(/\r?\n/).map((l) => l.trim()),
           /^([IVXLC]+\.|[A-Z]\.\s|\d{1,2}\.\s)\s*(.{3,120})$/,
         );
-        const chunks = chunkSections(d.title, sections).map((c) => ({
-          sectionPath: c.sectionPath,
-          ordinal: c.ordinal,
-          text: c.text,
-          tokenCount: c.tokenCount,
-          tier: 1 as const,
-          clientId: null,
-          effectiveDate: d.effective_on ?? d.publication_date,
-          retiredDate: null,
-          codesMentioned: c.codesMentioned,
-        }));
-        written += await replaceChunks(ctx.pool, doc.documentId, chunks);
-        fullTexts++;
-      } else if (d.abstract) {
-        written += await replaceChunks(ctx.pool, doc.documentId, [
-          {
-            sectionPath: 'abstract',
-            ordinal: 0,
-            text: `${d.title}\n\n${d.abstract}`,
-            tokenCount: Math.ceil(d.abstract.length / 3),
-            tier: 1,
-            clientId: null,
-            effectiveDate: d.effective_on ?? d.publication_date,
-            retiredDate: null,
-            codesMentioned: [],
-          },
-        ]);
+        fullTextChunks = chunkSections(d.title, sections);
       }
+
+      const result = await withDocument(
+        ctx.pool,
+        {
+          sourceId: 'fedreg',
+          externalId: d.document_number,
+          docType: d.type === 'Proposed Rule' ? 'fedreg_proposed_rule' : 'fedreg_rule',
+          title: d.title,
+          url: d.html_url,
+          versionHash,
+          effectiveDate: d.effective_on ?? d.publication_date,
+          revisionDate: null,
+          retiredDate: null,
+          tier: 1,
+          jurisdiction: [],
+          payer: null,
+          lob: null,
+          clientId: null,
+          storagePath: page.storagePath,
+          metadata: {
+            citation: d.citation,
+            docket_ids: d.docket_ids,
+            publication_date: d.publication_date,
+            tags,
+          },
+        },
+        async (client, documentId) => {
+          if (fullTextChunks) {
+            return replaceChunks(
+              client,
+              documentId,
+              fullTextChunks.map((c) => ({
+                sectionPath: c.sectionPath,
+                ordinal: c.ordinal,
+                text: c.text,
+                tokenCount: c.tokenCount,
+                tier: 1 as const,
+                clientId: null,
+                effectiveDate: d.effective_on ?? d.publication_date,
+                retiredDate: null,
+                codesMentioned: c.codesMentioned,
+              })),
+            );
+          }
+          if (d.abstract) {
+            return replaceChunks(client, documentId, [
+              {
+                sectionPath: 'abstract',
+                ordinal: 0,
+                text: `${d.title}\n\n${d.abstract}`,
+                tokenCount: Math.ceil(d.abstract.length / 3),
+                tier: 1,
+                clientId: null,
+                effectiveDate: d.effective_on ?? d.publication_date,
+                retiredDate: null,
+                codesMentioned: [],
+              },
+            ]);
+          }
+          return 0;
+        },
+      );
+      written += result.rowsWritten;
+      if (result.outcome !== 'unchanged' && fullTextChunks) fullTexts++;
     }
     if (ctx.limit && docsSeen >= ctx.limit) break;
     next = parsed.next_page_url ?? '';

@@ -5,7 +5,7 @@
 // CPT_LICENSE_MODE=none (brief non-negotiable 5). Release-level effectivity: the
 // quarter's snapshot governs dates of service in that quarter (docs/SOURCES.md).
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
-import { upsertDocument } from '../doc-store.js';
+import { withDocument } from '../doc-store.js';
 import { csvRows, zipEntries } from '../formats.js';
 
 export interface MpfsRowParsed {
@@ -137,26 +137,6 @@ async function loadRelease(
   const zipUrl = findZipLink(detail.body.toString('utf8'), detail.finalUrl);
   if (!zipUrl) throw new Error(`no zip link on ${link.detailUrl}`);
   const artifact = await ctx.fetcher.fetchArtifact(zipUrl, 'cms_mpfs');
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_mpfs',
-    externalId: `mpfs-${link.slug}`,
-    docType: 'mpfs_rvu',
-    title: `PFS Relative Value File ${link.slug.toUpperCase()}`,
-    url: zipUrl,
-    versionHash: artifact.sha256,
-    effectiveDate: quarterStart(link.year, link.quarter),
-    revisionDate: null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: { year: link.year, quarter: link.quarter },
-  });
-  if (doc.outcome === 'unchanged') return { written: 0, unchanged: true };
-
   // 2026+ splits PPRRVU into nonQPP and QPP (two conversion factors); the non-QPP
   // file is the general case and is what conversion_factor stores (docs/DECISIONS.md D8).
   const entries = zipEntries(artifact.body, /^PPRRVU.*\.csv$/i);
@@ -167,7 +147,44 @@ async function loadRelease(
   if (!pprrvu) throw new Error(`no PPRRVU csv in ${zipUrl}`);
   let rows = parsePprrvuCsv(pprrvu.data);
   if (ctx.limit) rows = rows.slice(0, ctx.limit);
+  const gpciEntry = zipEntries(artifact.body, /^GPCI.*\.csv$/i)[0];
+  const gpciRows = gpciEntry ? parseGpciCsv(gpciEntry.data) : [];
 
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_mpfs',
+      externalId: `mpfs-${link.slug}`,
+      docType: 'mpfs_rvu',
+      title: `PFS Relative Value File ${link.slug.toUpperCase()}`,
+      url: zipUrl,
+      versionHash: artifact.sha256,
+      effectiveDate: quarterStart(link.year, link.quarter),
+      revisionDate: null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: { year: link.year, quarter: link.quarter },
+    },
+    async (client, documentId) => loadMpfsData(client, documentId, rows, gpciRows, link),
+  );
+  if (result.outcome === 'unchanged') return { written: 0, unchanged: true };
+  return { written: result.rowsWritten, unchanged: false };
+}
+
+type Db = { query: (sql: string, params?: unknown[]) => Promise<{ rowCount: number | null }> };
+
+async function loadMpfsData(
+  db: Db,
+  documentId: string,
+  rows: MpfsRowParsed[],
+  gpciRows: GpciRowParsed[],
+  link: RvuReleaseLink,
+): Promise<number> {
   let written = 0;
   const BATCH = 400;
   for (let i = 0; i < rows.length; i += BATCH) {
@@ -198,7 +215,7 @@ async function loadRelease(
         r.pctc,
       );
     });
-    const res = await ctx.pool.query(
+    const res = await db.query(
       `INSERT INTO mpfs (code, modifier, year, quarter, status_indicator, work_rvu,
          pe_rvu_fac, pe_rvu_nonfac, mp_rvu, total_fac, total_nonfac, global_days,
          mult_proc, bilateral, assistant_surg, co_surg, pctc, effective_date, file_version)
@@ -231,32 +248,29 @@ async function loadRelease(
   // Conversion factor: per-row CONV FACTOR column; take the first non-empty value.
   const cf = rows.map((r) => r.convFactor).find((v) => /^\d+\.\d+$/.test(v));
   if (cf) {
-    await ctx.pool.query(
+    await db.query(
       `INSERT INTO conversion_factor (year, quarter, value, source_document_id)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (year, quarter) DO UPDATE SET
          value = EXCLUDED.value, source_document_id = EXCLUDED.source_document_id`,
-      [link.year, link.quarter, cf, doc.documentId],
+      [link.year, link.quarter, cf, documentId],
     );
     written += 1;
   }
 
   // GPCI (annual; present in each quarterly zip).
-  const gpciEntry = zipEntries(artifact.body, /^GPCI.*\.csv$/i)[0];
-  if (gpciEntry) {
-    for (const g of parseGpciCsv(gpciEntry.data)) {
-      const res = await ctx.pool.query(
-        `INSERT INTO gpci (locality_code, locality_name, state, year, work, pe, mp)
-         VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric)
-         ON CONFLICT (locality_code, year) DO UPDATE SET
-           locality_name = EXCLUDED.locality_name, state = EXCLUDED.state,
-           work = EXCLUDED.work, pe = EXCLUDED.pe, mp = EXCLUDED.mp`,
-        [`${g.mac}-${g.localityNumber}`, g.localityName, g.state, link.year, g.work, g.pe, g.mp],
-      );
-      written += res.rowCount ?? 0;
-    }
+  for (const g of gpciRows) {
+    const res = await db.query(
+      `INSERT INTO gpci (locality_code, locality_name, state, year, work, pe, mp)
+       VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7::numeric)
+       ON CONFLICT (locality_code, year) DO UPDATE SET
+         locality_name = EXCLUDED.locality_name, state = EXCLUDED.state,
+         work = EXCLUDED.work, pe = EXCLUDED.pe, mp = EXCLUDED.mp`,
+      [`${g.mac}-${g.localityNumber}`, g.localityName, g.state, link.year, g.work, g.pe, g.mp],
+    );
+    written += res.rowCount ?? 0;
   }
-  return { written, unchanged: false };
+  return written;
 }
 
 function numOrNull(s: string): string | null {

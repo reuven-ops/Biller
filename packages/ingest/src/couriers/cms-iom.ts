@@ -5,7 +5,7 @@
 // lines which stay inside the chunk text for the composer and verifier to quote.
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import { chunkSections } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { extractPdfLines, sectionsFromLines } from '../pdf.js';
 
 interface IomChapterConfig {
@@ -46,32 +46,52 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
     const externalId = `iom-${chapter.manual}-ch${chapter.chapter}`;
     const extraction = await extractPdfLines(new Uint8Array(artifact.body));
     const revision = parseChapterRevision(extraction.lines);
-    const doc = await upsertDocument(ctx.pool, {
-      sourceId: 'cms_iom',
-      externalId,
-      docType: 'iom_chapter',
-      title: chapter.title,
-      url: chapter.url,
-      versionHash: artifact.sha256,
-      effectiveDate: null,
-      revisionDate: revision?.issued ?? null,
-      retiredDate: null,
-      tier: 2,
-      jurisdiction: [],
-      payer: null,
-      lob: null,
-      clientId: null,
-      storagePath: artifact.storagePath,
-      metadata: {
-        manual: chapter.manual,
-        chapter: chapter.chapter,
-        rev: revision?.rev ?? null,
-        pages: extraction.pages,
-        quality: extraction.quality,
-        ...(extraction.quality === 'poor' ? { quality_note: extraction.qualityNote } : {}),
+    const result = await withDocument(
+      ctx.pool,
+      {
+        sourceId: 'cms_iom',
+        externalId,
+        docType: 'iom_chapter',
+        title: chapter.title,
+        url: chapter.url,
+        versionHash: artifact.sha256,
+        effectiveDate: null,
+        revisionDate: revision?.issued ?? null,
+        retiredDate: null,
+        tier: 2,
+        jurisdiction: [],
+        payer: null,
+        lob: null,
+        clientId: null,
+        storagePath: artifact.storagePath,
+        metadata: {
+          manual: chapter.manual,
+          chapter: chapter.chapter,
+          rev: revision?.rev ?? null,
+          pages: extraction.pages,
+          quality: extraction.quality,
+          ...(extraction.quality === 'poor' ? { quality_note: extraction.qualityNote } : {}),
+        },
       },
-    });
-    if (doc.outcome === 'unchanged') {
+      async (client, documentId) => {
+        if (extraction.quality === 'poor') return 0;
+        const sections = sectionsFromLines(extraction.lines);
+        const prefix = `${chapter.manual} > Ch.${chapter.chapter}`;
+        const chunks = chunkSections(chapter.title, sections).map((c) => ({
+          sectionPath: `${prefix} > ${c.sectionPath}`,
+          ordinal: c.ordinal,
+          text: c.text,
+          tokenCount: c.tokenCount,
+          tier: 2 as const,
+          clientId: null,
+          effectiveDate: null,
+          retiredDate: null,
+          codesMentioned: c.codesMentioned,
+        }));
+        return replaceChunks(client, documentId, chunks);
+      },
+    );
+    if (result.outcome === 'unchanged') {
       notes.push(`${externalId} unchanged`);
       continue;
     }
@@ -79,21 +99,8 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
       notes.push(`${externalId} flagged poor quality, not chunked`);
       continue;
     }
-    const sections = sectionsFromLines(extraction.lines);
-    const prefix = `${chapter.manual} > Ch.${chapter.chapter}`;
-    const chunks = chunkSections(chapter.title, sections).map((c) => ({
-      sectionPath: `${prefix} > ${c.sectionPath}`,
-      ordinal: c.ordinal,
-      text: c.text,
-      tokenCount: c.tokenCount,
-      tier: 2 as const,
-      clientId: null,
-      effectiveDate: null,
-      retiredDate: null,
-      codesMentioned: c.codesMentioned,
-    }));
-    written += await replaceChunks(ctx.pool, doc.documentId, chunks);
-    notes.push(`${externalId} rev ${revision?.rev ?? '?'}: ${chunks.length} chunks`);
+    written += result.rowsWritten;
+    notes.push(`${externalId} rev ${revision?.rev ?? '?'}: ${result.rowsWritten} chunks`);
   }
   return { rowsWritten: written, notes: notes.join('; ') };
 }

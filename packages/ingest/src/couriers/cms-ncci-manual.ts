@@ -4,7 +4,7 @@
 import type { Courier, CourierContext, CourierResult } from '../courier.js';
 import type { Section } from '../chunker.js';
 import { chunkSections } from '../chunker.js';
-import { replaceChunks, upsertDocument } from '../doc-store.js';
+import { replaceChunks, withDocument } from '../doc-store.js';
 import { extractPdfLines } from '../pdf.js';
 
 export interface ManualLink {
@@ -75,47 +75,51 @@ async function run(ctx: CourierContext): Promise<CourierResult> {
 
   const artifact = await ctx.fetcher.fetchArtifact(link.url, 'cms_ncci_manual');
   const extraction = await extractPdfLines(new Uint8Array(artifact.body));
-  const doc = await upsertDocument(ctx.pool, {
-    sourceId: 'cms_ncci_manual',
-    externalId: 'ncci-manual',
-    docType: 'ncci_manual',
-    title: `NCCI Policy Manual for Medicare Services, ${link.year} edition`,
-    url: link.url,
-    versionHash: artifact.sha256,
-    effectiveDate: `${link.year}-01-01`,
-    revisionDate: null,
-    retiredDate: null,
-    tier: 2,
-    jurisdiction: [],
-    payer: null,
-    lob: null,
-    clientId: null,
-    storagePath: artifact.storagePath,
-    metadata: { year: link.year, pages: extraction.pages, quality: extraction.quality },
-  });
-  if (doc.outcome === 'unchanged') return { rowsWritten: 0, notes: `unchanged (${link.year})` };
-  if (extraction.quality === 'poor') {
-    return {
-      rowsWritten: 0,
-      notes: `document flagged, not chunked: ${extraction.qualityNote}`,
-    };
-  }
+  const poor = extraction.quality === 'poor';
   let sections = ncciManualSections(extraction.lines);
   if (ctx.limit) sections = sections.slice(0, ctx.limit);
-  const chunks = chunkSections(`NCCI Policy Manual ${link.year}`, sections).map((c) => ({
-    sectionPath: c.sectionPath,
-    ordinal: c.ordinal,
-    text: c.text,
-    tokenCount: c.tokenCount,
-    tier: 2 as const,
-    clientId: null,
-    effectiveDate: `${link.year}-01-01`,
-    retiredDate: null,
-    codesMentioned: c.codesMentioned,
-  }));
-  const written = await replaceChunks(ctx.pool, doc.documentId, chunks);
+  const result = await withDocument(
+    ctx.pool,
+    {
+      sourceId: 'cms_ncci_manual',
+      externalId: 'ncci-manual',
+      docType: 'ncci_manual',
+      title: `NCCI Policy Manual for Medicare Services, ${link.year} edition`,
+      url: link.url,
+      versionHash: artifact.sha256,
+      effectiveDate: `${link.year}-01-01`,
+      revisionDate: null,
+      retiredDate: null,
+      tier: 2,
+      jurisdiction: [],
+      payer: null,
+      lob: null,
+      clientId: null,
+      storagePath: artifact.storagePath,
+      metadata: { year: link.year, pages: extraction.pages, quality: extraction.quality },
+    },
+    async (client, documentId) => {
+      if (poor) return 0;
+      const chunks = chunkSections(`NCCI Policy Manual ${link.year}`, sections).map((c) => ({
+        sectionPath: c.sectionPath,
+        ordinal: c.ordinal,
+        text: c.text,
+        tokenCount: c.tokenCount,
+        tier: 2 as const,
+        clientId: null,
+        effectiveDate: `${link.year}-01-01`,
+        retiredDate: null,
+        codesMentioned: c.codesMentioned,
+      }));
+      return replaceChunks(client, documentId, chunks);
+    },
+  );
+  if (result.outcome === 'unchanged') return { rowsWritten: 0, notes: `unchanged (${link.year})` };
+  if (poor) {
+    return { rowsWritten: 0, notes: `document flagged, not chunked: ${extraction.qualityNote}` };
+  }
   return {
-    rowsWritten: written,
+    rowsWritten: result.rowsWritten,
     notes: `${link.year} edition, ${extraction.pages} pages, ${sections.length} sections`,
   };
 }
