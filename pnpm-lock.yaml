@@ -51,7 +51,14 @@ importers:
         specifier: workspace:*
         version: link:../../packages/db
 
-  evals: {}
+  evals:
+    dependencies:
+      '@advisor/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@advisor/db':
+        specifier: workspace:*
+        version: link:../packages/db
 
   packages/core:
     dependencies:

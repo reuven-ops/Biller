@@ -10,7 +10,7 @@
     "db:migrate": "tsx packages/db/src/migrate-cli.ts",
     "ingest": "tsx apps/cli/src/index.ts ingest",
     "ask": "tsx apps/cli/src/index.ts ask",
-    "eval": "tsx apps/cli/src/index.ts eval",
+    "eval": "tsx evals/run.ts",
     "report": "tsx apps/cli/src/index.ts report",
     "freshness": "tsx apps/cli/src/index.ts freshness",
     "users": "tsx apps/cli/src/index.ts users",
