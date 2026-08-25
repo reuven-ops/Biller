@@ -67,9 +67,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ingest
     devDependencies:
+      '@types/adm-zip':
+        specifier: ^0.5.8
+        version: 0.5.8
       '@types/pg':
         specifier: ^8.15.4
         version: 8.23.1
+      adm-zip:
+        specifier: ^0.6.0
+        version: 0.6.0
       pg:
         specifier: ^8.16.3
         version: 8.23.0

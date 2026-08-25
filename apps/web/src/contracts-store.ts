@@ -25,6 +25,21 @@ export interface ContractUpload {
   data: Buffer;
 }
 
+/**
+ * Stable external id piece from a user-entered name, so a re-upload of a revised
+ * document under the same title supersedes the old version and records a
+ * revised change event instead of creating an unrelated document.
+ */
+function slug(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'untitled'
+  );
+}
+
 /** DOCX text: the zip's word/document.xml with tags stripped, paragraphs kept. */
 export function docxText(data: Buffer): string {
   const entry = zipEntries(data, /^word\/document\.xml$/)[0];
@@ -132,7 +147,7 @@ export async function importContract(pool: Pool, upload: ContractUpload): Promis
   const versionHash = createHash('sha256').update(upload.data).digest('hex');
   const doc = await upsertDocument(pool, {
     sourceId: 'client_contracts',
-    externalId: `contract-${versionHash.slice(0, 12)}`,
+    externalId: `contract-${upload.clientId}-${slug(upload.payer)}-${upload.contractType}-${slug(upload.title)}`,
     docType: upload.contractType,
     title: upload.title,
     url: upload.portalPath,
@@ -220,7 +235,7 @@ export async function importPayerPolicy(
   const versionHash = createHash('sha256').update(upload.data).digest('hex');
   const doc = await upsertDocument(pool, {
     sourceId: 'payer_policies',
-    externalId: `payer-policy-${versionHash.slice(0, 12)}`,
+    externalId: `payer-policy-${slug(upload.payer)}-${slug(upload.title)}`,
     docType: 'payer_policy',
     title: upload.title,
     url: upload.portalPath,
