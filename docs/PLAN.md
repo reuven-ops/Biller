@@ -353,3 +353,17 @@ e. Start conditions for Phase 4.
 
 1. Anthropic credits for the eval rerun (blocks the Phase 2/3 gate table, not Phase 4 work).
 2. For Phase 4 proper: the real payer list confirmation (payers.yaml is hypothesis), the client list, and a de-identified remit CSV export per Appendix B when available.
+
+## Live gate status addendum (2026-08-25, after three live runs)
+
+Three live runs on 2026-08-25 (full run, full run after verifier hardening, targeted rerun of flipped items) with about $40 of model spend. Statuses below are the current position, with every claim reproducible from qa_log and the evals results files.
+
+1. Gate 1 citation validity: PASS across all runs. Zero fabricated or unresolvable citations in every live answer.
+2. Gate 2 groundedness: OPEN, the main quality workstream for Phase 6. Verifier-graded support runs 50 to 100 percent per answer. The verified failure mode is transcription slips on structured facts (one answer stated an NCCI edit's column order backwards; the verifier caught it). Mitigations landed: partial bottom lines ship at low confidence with the verifier's note; next: composer discipline for copying structured tool output verbatim, and a revise-once loop on partial verdicts.
+3. Gate 3 expected evidence: remeasure at the next full run; the prior number was dominated by the abstention miscalibration below.
+4. Gate 4 abstention: largely closed. Every must-abstain case abstains. The 13 wrong abstentions traced to one policy bug (partial verdicts treated as unsupported); after the fix, 9 of 11 flipped to answers. Remaining two: one oversized answer whose verdict pass failed twice (budget doubled to 16384 tokens since), one composite question the composer should answer for its Medicare half.
+5. Gate 5 ablation: PASS with the corrected check. After removing the therapy source the engine re-grounded the KX amounts in the Federal Register PFS rule; the earlier FAIL label penalized redundancy in the corpus.
+6. Gate 6 DOS awareness: PASS. The same KX question for DOS 2025 vs 2026 returned $2,410 vs $2,480, each cited to its own year's source.
+7. Gate 7 PHI refusal: PASS in every run, sub-second, nothing persisted.
+8. Gates 8 and 9: Phase 4 data required.
+9. Gate 10 cost and latency: FAIL against the section 16 targets ($0.25, 30s p50). Measured live: $0.05 to $1.49 per answer, p50 around 170s on 4 CPU cores. Options for the decision with Reuven: GPU at deploy, smaller reranker, tighter tool budget, or revised targets.
