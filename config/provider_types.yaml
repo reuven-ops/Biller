@@ -1,0 +1,14 @@
+# Brief section 18.
+provider_types:
+  - { id: DC, name: Chiropractor }
+  - { id: PT, name: Physical Therapist }
+  - { id: PTA, name: Physical Therapist Assistant }
+  - { id: OT, name: Occupational Therapist }
+  - { id: OTA, name: Occupational Therapy Assistant }
+  - { id: MD_DO_PSYCH, name: Psychiatrist (MD/DO) }
+  - { id: PHD_PSYD, name: Psychologist (PhD/PsyD) }
+  - { id: LCSW, name: Licensed Clinical Social Worker }
+  - { id: MFT, name: Marriage and Family Therapist (LMFT/MFT) }
+  - { id: MHC, name: Mental Health Counselor (LMHC/LPC/MHC) }
+  - { id: NP, name: Nurse Practitioner }
+  - { id: PA, name: Physician Assistant }

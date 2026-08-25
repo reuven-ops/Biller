@@ -1,0 +1,196 @@
+# Source registry per brief section 6. base_url and config.urls are discovered at build
+# time (Phase 1 for sources 1 to 13 and 20; Phase 4 for payer sources) and recorded with
+# retrieval dates in docs/SOURCES.md. URLs live here, not in code.
+sources:
+  - id: cms_mcd
+    name: Medicare Coverage Database
+    publisher: CMS
+    kind: download
+    cadence_days: 7
+    tier: 3
+    license_required: true # CMS end-user license attestation
+    enabled: true
+    base_url: ''
+  - id: cms_ncci_ptp
+    name: NCCI PTP edits, practitioner services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_ncci_mue
+    name: MUE practitioner services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_ncci_manual
+    name: NCCI Policy Manual for Medicare Services
+    publisher: CMS
+    kind: pdf
+    cadence_days: 365
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_hcpcs
+    name: HCPCS Level II quarterly update
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_mpfs
+    name: PFS RVU files, conversion factor, GPCI
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false # descriptors inside are AMA CPT; not stored unless licensed
+    enabled: true
+    base_url: ''
+  - id: cms_icd10cm
+    name: ICD-10-CM code tables and Official Guidelines
+    publisher: CMS
+    kind: download
+    cadence_days: 182
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_iom
+    name: Internet-Only Manuals, selected chapters
+    publisher: CMS
+    kind: pdf
+    cadence_days: 30
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+    config:
+      chapters:
+        - { manual: '100-02', chapter: '15', note: 'therapy 220 to 230, chiropractic 240' }
+        - { manual: '100-04', chapter: '1' }
+        - { manual: '100-04', chapter: '5' }
+        - { manual: '100-04', chapter: '12' }
+        - { manual: '100-04', chapter: '30' }
+        - { manual: '100-08', chapter: '3' }
+  - id: cms_mln
+    name: MLN Matters articles and Transmittals index
+    publisher: CMS
+    kind: html
+    cadence_days: 7
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+    config:
+      backfill_years: 3
+  - id: cms_telehealth_list
+    name: List of Medicare Telehealth Services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: cms_therapy
+    name: Therapy Services page, KX threshold amounts
+    publisher: CMS
+    kind: html
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: fedreg
+    name: Federal Register, agency CMS rules
+    publisher: Federal Register
+    kind: download
+    cadence_days: 1
+    tier: 1
+    license_required: false
+    enabled: true
+    base_url: ''
+    config:
+      backfill_from: '2019-01-01'
+  - id: oig_workplan
+    name: OIG Work Plan active items
+    publisher: HHS OIG
+    kind: html
+    cadence_days: 30
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''
+  - id: mac_sites
+    name: MAC provider education pages
+    publisher: MACs
+    kind: html
+    cadence_days: 7
+    tier: 3
+    license_required: false
+    enabled: false # enabled in Phase 4 with the confirmed MAC footprint
+    base_url: ''
+  - id: payer_policies
+    name: Payer reimbursement and medical policies
+    publisher: configured payers
+    kind: html
+    cadence_days: 7
+    tier: 4
+    license_required: false
+    enabled: false # enabled in Phase 4
+    base_url: ''
+  - id: client_contracts
+    name: Client payer contracts and fee schedules
+    publisher: internal upload
+    kind: upload
+    cadence_days: 0
+    tier: 5
+    license_required: false
+    enabled: false # enabled in Phase 4
+    base_url: ''
+  - id: payer_call_notes
+    name: Structured payer call notes
+    publisher: internal
+    kind: upload
+    cadence_days: 0
+    tier: 6
+    license_required: false
+    enabled: false # enabled in Phase 4
+    base_url: ''
+  - id: remit_behavior
+    name: Aggregated remittance behavior
+    publisher: internal import
+    kind: import
+    cadence_days: 30
+    tier: 7
+    license_required: false
+    enabled: false # enabled in Phase 4
+    base_url: ''
+  - id: ama_cpt
+    name: CPT Standard Data File
+    publisher: AMA
+    kind: download
+    cadence_days: 365
+    tier: 2
+    license_required: true # gated by CPT_LICENSE_MODE
+    enabled: false # enabled in Phase 7 when the AMA agreement is amended
+    base_url: ''
+  - id: x12_carc_rarc
+    name: CARC and RARC code lists
+    publisher: X12
+    kind: html
+    cadence_days: 120
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: ''

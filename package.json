@@ -1,0 +1,41 @@
+{
+  "name": "cm-coding-advisor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:migrate": "tsx packages/db/src/migrate-cli.ts",
+    "ingest": "tsx apps/cli/src/index.ts ingest",
+    "ask": "tsx apps/cli/src/index.ts ask",
+    "eval": "tsx apps/cli/src/index.ts eval",
+    "report": "tsx apps/cli/src/index.ts report",
+    "freshness": "tsx apps/cli/src/index.ts freshness",
+    "users": "tsx apps/cli/src/index.ts users",
+    "backup": "tsx apps/cli/src/index.ts backup",
+    "restore": "tsx apps/cli/src/index.ts restore",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . && prettier --check . && pnpm typecheck",
+    "format": "prettier --write ."
+  },
+  "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.3.0",
+    "eslint": "^10.9.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

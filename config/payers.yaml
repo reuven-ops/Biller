@@ -1,0 +1,32 @@
+# Hypothesis defaults from brief section 18. Replace with the payers covering
+# 80 percent of ClinicMind claim volume before Phase 4 (Jeremy supplies the Pareto list).
+# Policy library URLs are discovered and filled in Phase 4.
+payers:
+  - id: uhc
+    name: UnitedHealthcare
+    lob: [Commercial, MA]
+    domains: []
+  - id: aetna
+    name: Aetna
+    lob: [Commercial, MA]
+    domains: []
+  - id: cigna
+    name: Cigna
+    lob: [Commercial]
+    domains: []
+  - id: elevance
+    name: Elevance/Anthem
+    lob: [Commercial, MA]
+    domains: []
+  - id: humana
+    name: Humana
+    lob: [Commercial, MA]
+    domains: []
+  - id: fl_blue
+    name: Florida Blue
+    lob: [Commercial]
+    domains: []
+  - id: fl_medicaid
+    name: Florida Medicaid (AHCA)
+    lob: [Medicaid]
+    domains: []

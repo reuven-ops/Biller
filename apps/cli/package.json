@@ -1,0 +1,13 @@
+{
+  "name": "@advisor/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@advisor/db": "workspace:*",
+    "@advisor/ingest": "workspace:*"
+  }
+}

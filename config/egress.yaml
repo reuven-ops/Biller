@@ -1,0 +1,16 @@
+# Outbound network allowlist, enforced in the fetch layer and documented for the firewall.
+# Brief section 4. Runtime traffic goes only to api.anthropic.com and these publisher domains.
+# MAC, payer, and Medicaid domains are appended as they are configured in jurisdictions.yaml
+# and payers.yaml.
+allow:
+  - api.anthropic.com
+  - cms.gov
+  - '*.cms.gov'
+  - federalregister.gov
+  - '*.federalregister.gov'
+  - govinfo.gov
+  - '*.govinfo.gov'
+  - oig.hhs.gov
+  # x12.org publishes the CARC and RARC lists (source 20)
+  - x12.org
+  - '*.x12.org'

@@ -1,0 +1,33 @@
+# MACs and states to track. Hypothesis defaults from brief section 18.
+# Replace with ClinicMind's client footprint before Phase 4 (Reuven supplies the list).
+macs:
+  - id: JN
+    name: First Coast Service Options
+    states: [FL, PR, VI]
+    domains: [medicare.fcso.com]
+  - id: JH
+    name: Novitas Solutions
+    states: [AR, CO, DE, DC, LA, MD, MS, NJ, NM, OK, PA, TX]
+    domains: [novitas-solutions.com]
+  - id: JJ
+    name: Palmetto GBA
+    states: [AL, GA, TN]
+    domains: [palmettogba.com]
+  - id: JK
+    name: National Government Services
+    states: [CT, ME, MA, NH, NY, RI, VT]
+    domains: [ngsmedicare.com]
+  - id: JF
+    name: Noridian Healthcare Solutions
+    states: [AK, AZ, ID, MT, ND, OR, SD, UT, WA, WY]
+    domains: [noridianmedicare.com]
+  - id: J5
+    name: WPS Government Health Administrators
+    states: [IA, KS, MO, NE]
+    domains: [wpsgha.com]
+  - id: J15
+    name: CGS Administrators
+    states: [KY, OH]
+    domains: [cgsmedicare.com]
+default_mac: JN
+default_state: FL
