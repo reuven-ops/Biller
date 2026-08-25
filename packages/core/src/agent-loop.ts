@@ -36,6 +36,8 @@ export interface AskResult {
   toolCalls: { name: string; input: unknown }[];
   usage: { inputTokens: number; outputTokens: number; costUsd: number; latencyMs: number };
   stubMode: boolean;
+  /** True when the shipped answer is the composer's one revision after verifier feedback. */
+  revised: boolean;
 }
 
 interface Normalized {
@@ -123,6 +125,144 @@ async function freshnessBlock(
   };
 }
 
+interface UsageAcc {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  latencyMs: number;
+}
+
+/**
+ * Drives the composer until it submits a valid answer or the round budget runs
+ * out. Tool calls dispatch against the shared context (evidence accumulates in
+ * the run's registry); once toolCallCap is reached submit_answer is forced.
+ */
+async function composerRounds(opts: {
+  llm: LlmClient;
+  model: string;
+  system: string;
+  messages: LlmMessage[];
+  ctx: ToolContext;
+  usage: UsageAcc;
+  toolCalls: { name: string; input: unknown }[];
+  toolCallCap: number;
+  maxRounds: number;
+}): Promise<{ submitted: Answer | null; submitError: string | null }> {
+  const { llm, messages, ctx, usage, toolCalls } = opts;
+  let submitted: Answer | null = null;
+  let submitError: string | null = null;
+  for (let round = 0; round < opts.maxRounds && submitted === null; round++) {
+    const res = await llm.complete({
+      model: opts.model,
+      system: opts.system,
+      messages,
+      tools: TOOL_DEFINITIONS,
+      toolChoice:
+        toolCalls.length >= opts.toolCallCap
+          ? { type: 'tool', name: 'submit_answer' }
+          : { type: 'any' },
+      maxTokens: 16000,
+    });
+    usage.inputTokens += res.usage.inputTokens;
+    usage.outputTokens += res.usage.outputTokens;
+    usage.costUsd += res.usage.costUsd;
+
+    const toolUses = res.content.filter((b) => b.type === 'tool_use');
+    if (toolUses.length === 0) {
+      submitError = 'composer produced no tool call';
+      break;
+    }
+    messages.push({ role: 'assistant', content: res.content });
+    const results: {
+      type: 'tool_result';
+      tool_use_id: string;
+      content: string;
+      is_error?: boolean;
+    }[] = [];
+    for (const use of toolUses) {
+      if (use.type !== 'tool_use') continue;
+      if (use.name === 'submit_answer') {
+        const input = use.input as { answer?: unknown };
+        const validated = validateAnswer(input.answer);
+        if (validated.ok) {
+          submitted = validated.answer;
+          results.push({ type: 'tool_result', tool_use_id: use.id, content: 'accepted' });
+        } else {
+          results.push({
+            type: 'tool_result',
+            tool_use_id: use.id,
+            content: `Answer rejected by schema validation: ${validated.errors}. Fix and resubmit.`,
+            is_error: true,
+          });
+        }
+        continue;
+      }
+      toolCalls.push({ name: use.name, input: use.input });
+      try {
+        const result = await dispatchTool(ctx, use.name, use.input);
+        let text = JSON.stringify(result);
+        const budgetLeft = EVIDENCE_CONTEXT_CHAR_CAP - ctx.registry.totalTextLength();
+        if (text.length > Math.max(4000, budgetLeft)) {
+          text =
+            text.slice(0, Math.max(4000, budgetLeft)) + '... [truncated: evidence context cap]';
+        }
+        results.push({ type: 'tool_result', tool_use_id: use.id, content: text });
+      } catch (err) {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: use.id,
+          content: `tool error: ${(err as Error).message}`,
+          is_error: true,
+        });
+      }
+    }
+    messages.push({ role: 'user', content: results });
+  }
+  return { submitted, submitError };
+}
+
+/** The verifier's actionable findings, formatted for the composer's revision turn. */
+function verifierFeedback(v: VerifierOutput): string {
+  const lines: string[] = [];
+  for (const item of v.items) {
+    if (item.verdict === 'supported') continue;
+    const note = item.note ? ` ${item.note}` : '';
+    const quote = item.quote ? ` Evidence says: "${item.quote.slice(0, 300)}"` : '';
+    lines.push(
+      `- ${item.kind}[${item.index}] is ${item.verdict}: "${item.statement.slice(0, 240)}".${note}${quote}`,
+    );
+  }
+  for (const id of v.codeChecks.invalidCitations) {
+    lines.push(`- citation ${id} does not match any evidence retrieved in this run`);
+  }
+  for (const t of v.codeChecks.tierViolations) lines.push(`- tier violation: ${t}`);
+  for (const d of v.codeChecks.dosViolations) lines.push(`- date violation: ${d}`);
+  return lines.join('\n');
+}
+
+/**
+ * Appends the revision request to the conversation. The last message is the
+ * tool_result turn that accepted submit_answer, so the feedback rides in that
+ * same user message as a trailing text block (tool results must stay first).
+ */
+function appendRevisionRequest(messages: LlmMessage[], feedback: string): void {
+  const text =
+    'An independent verifier compared your submitted answer against the quoted evidence ' +
+    'and found the following problems:\n' +
+    feedback +
+    '\n\nRevise the answer now. Correct only the statements listed above against the tool ' +
+    'results already in this conversation, copying structured values (column order, amounts, ' +
+    'dates, indicators) character for character; you may make up to two tool calls to re-read ' +
+    'a value. Keep every statement that was supported. If the evidence truly does not support ' +
+    'a core element, abstain instead of restating it. Resubmit with submit_answer.';
+  const last = messages[messages.length - 1];
+  if (last && last.role === 'user' && Array.isArray(last.content)) {
+    last.content.push({ type: 'text', text });
+  } else {
+    messages.push({ role: 'user', content: text });
+  }
+}
+
 /** Today's model spend from qa_log, for the daily cost cap. */
 export async function spendTodayUsd(pool: Pool): Promise<number> {
   const res = await pool.query<{ total: string | null }>(
@@ -195,6 +335,7 @@ export async function ask(pool: Pool, llm: LlmClient, req: AskRequest): Promise<
       toolCalls,
       usage,
       stubMode: llm.mode === 'stub',
+      revised: false,
     };
   }
 
@@ -212,75 +353,17 @@ export async function ask(pool: Pool, llm: LlmClient, req: AskRequest): Promise<
     },
   ];
 
-  let submitted: Answer | null = null;
-  let submitError: string | null = null;
-  for (let round = 0; round < MAX_TOOL_CALLS + 2 && submitted === null; round++) {
-    const res = await llm.complete({
-      model: models.composer,
-      system: composerPrompt,
-      messages,
-      tools: TOOL_DEFINITIONS,
-      toolChoice:
-        toolCalls.length >= MAX_TOOL_CALLS
-          ? { type: 'tool', name: 'submit_answer' }
-          : { type: 'any' },
-      maxTokens: 16000,
-    });
-    usage.inputTokens += res.usage.inputTokens;
-    usage.outputTokens += res.usage.outputTokens;
-    usage.costUsd += res.usage.costUsd;
-
-    const toolUses = res.content.filter((b) => b.type === 'tool_use');
-    if (toolUses.length === 0) {
-      submitError = 'composer produced no tool call';
-      break;
-    }
-    messages.push({ role: 'assistant', content: res.content });
-    const results: {
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string;
-      is_error?: boolean;
-    }[] = [];
-    for (const use of toolUses) {
-      if (use.type !== 'tool_use') continue;
-      if (use.name === 'submit_answer') {
-        const input = use.input as { answer?: unknown };
-        const validated = validateAnswer(input.answer);
-        if (validated.ok) {
-          submitted = validated.answer;
-          results.push({ type: 'tool_result', tool_use_id: use.id, content: 'accepted' });
-        } else {
-          results.push({
-            type: 'tool_result',
-            tool_use_id: use.id,
-            content: `Answer rejected by schema validation: ${validated.errors}. Fix and resubmit.`,
-            is_error: true,
-          });
-        }
-        continue;
-      }
-      toolCalls.push({ name: use.name, input: use.input });
-      try {
-        const result = await dispatchTool(ctx, use.name, use.input);
-        let text = JSON.stringify(result);
-        const budgetLeft = EVIDENCE_CONTEXT_CHAR_CAP - ctx.registry.totalTextLength();
-        if (text.length > Math.max(4000, budgetLeft)) {
-          text =
-            text.slice(0, Math.max(4000, budgetLeft)) + '... [truncated: evidence context cap]';
-        }
-        results.push({ type: 'tool_result', tool_use_id: use.id, content: text });
-      } catch (err) {
-        results.push({
-          type: 'tool_result',
-          tool_use_id: use.id,
-          content: `tool error: ${(err as Error).message}`,
-          is_error: true,
-        });
-      }
-    }
-    messages.push({ role: 'user', content: results });
-  }
+  const { submitted, submitError } = await composerRounds({
+    llm,
+    model: models.composer,
+    system: composerPrompt,
+    messages,
+    ctx,
+    usage,
+    toolCalls,
+    toolCallCap: MAX_TOOL_CALLS,
+    maxRounds: MAX_TOOL_CALLS + 2,
+  });
 
   const freshness = await freshnessBlock(pool, ctx, normalized);
   let answer: Answer;
@@ -308,13 +391,63 @@ export async function ask(pool: Pool, llm: LlmClient, req: AskRequest): Promise<
     );
   }
 
-  const verifier = submitted
+  let verifier = submitted
     ? await verifyAnswer(llm, req.question, answer, ctx.registry, {
         dos: normalized.dos,
         userClientIds: req.userClientIds ?? [],
       })
     : null;
-  const finalAnswer = verifier ? verifier.finalAnswer : answer;
+  let finalAnswer = verifier ? verifier.finalAnswer : answer;
+  let revised = false;
+
+  // Revise-once loop (gate 2): when the verifier finds a fixable problem (a
+  // partial bottom line, or a forced abstention with concrete findings), the
+  // findings go back to the composer for one revision. The revised answer runs
+  // through the full verifier again (fail-closed unchanged) and ships only if it
+  // verifies at least as well as the original. Composer-chosen abstentions are
+  // never revised; a failed verification pass has no findings to act on.
+  const bottomPartial =
+    verifier?.items.some((i) => i.kind === 'bottom_line' && i.verdict === 'partial') ?? false;
+  if (
+    submitted &&
+    verifier &&
+    !answer.abstained &&
+    !verifier.verdictsUnavailable &&
+    (verifier.abstainedByVerifier || bottomPartial)
+  ) {
+    appendRevisionRequest(messages, verifierFeedback(verifier));
+    const retry = await composerRounds({
+      llm,
+      model: models.composer,
+      system: composerPrompt,
+      messages,
+      ctx,
+      usage,
+      toolCalls,
+      toolCallCap: toolCalls.length + 2,
+      maxRounds: 4,
+    });
+    if (retry.submitted && !retry.submitted.abstained) {
+      retry.submitted.freshness = freshness;
+      const reverify = await verifyAnswer(llm, req.question, retry.submitted, ctx.registry, {
+        dos: normalized.dos,
+        userClientIds: req.userClientIds ?? [],
+      });
+      const originalShipped = !verifier.abstainedByVerifier;
+      const revisionShips =
+        !reverify.abstainedByVerifier &&
+        !reverify.verdictsUnavailable &&
+        !reverify.finalAnswer.abstained;
+      if (
+        revisionShips &&
+        (!originalShipped || (reverify.supportedRate ?? 0) >= (verifier.supportedRate ?? 0))
+      ) {
+        verifier = reverify;
+        finalAnswer = reverify.finalAnswer;
+        revised = true;
+      }
+    }
+  }
   usage.latencyMs = Date.now() - started;
 
   const qaLogId = await writeQaLog(
@@ -327,6 +460,7 @@ export async function ask(pool: Pool, llm: LlmClient, req: AskRequest): Promise<
     usage,
     false,
     models,
+    revised,
   );
   return {
     answer: finalAnswer,
@@ -336,6 +470,7 @@ export async function ask(pool: Pool, llm: LlmClient, req: AskRequest): Promise<
     toolCalls,
     usage,
     stubMode: llm.mode === 'stub',
+    revised,
   };
 }
 
@@ -349,6 +484,7 @@ async function writeQaLog(
   usage: { inputTokens: number; outputTokens: number; costUsd: number; latencyMs: number },
   phiFlag: boolean,
   models: { composer: string; verifier: string; light: string },
+  revised = false,
 ): Promise<string | null> {
   const composerPrompt = promptText('composer.md');
   try {
@@ -381,6 +517,7 @@ async function writeQaLog(
               removed: verifier.removed,
               abstainedByVerifier: verifier.abstainedByVerifier,
               modelMode: verifier.modelMode,
+              revised,
             })
           : null,
         JSON.stringify(models),

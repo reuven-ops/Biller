@@ -312,6 +312,129 @@ suite('agent loop end to end (stub client)', () => {
     });
     expect(result2.answer.abstained).toBe(true);
     expect(result2.verifier?.abstainedByVerifier).toBe(true);
+    expect(result2.revised).toBe(false);
+  });
+
+  it('a partial bottom line triggers one revision that ships fully supported', async () => {
+    const stub = new StubLlmClient();
+    let feedbackSeen = '';
+    const partialVerdicts = (): LlmResponse => ({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            items: [
+              {
+                kind: 'bottom_line',
+                index: 0,
+                statement: 'bl',
+                verdict: 'partial',
+                evidence_id: 'x',
+                quote: 'q',
+                note: 'The answer states 98940 is the column 2 code; the edit lists 98940 as column 1 and 97140 as column 2.',
+              },
+              {
+                kind: 'code',
+                index: 0,
+                statement: '98940',
+                verdict: 'supported',
+                evidence_id: 'x',
+                quote: 'q',
+              },
+              {
+                kind: 'code',
+                index: 1,
+                statement: '97140',
+                verdict: 'supported',
+                evidence_id: 'x',
+                quote: 'q',
+              },
+              {
+                kind: 'published_rule',
+                index: 0,
+                statement: 's',
+                verdict: 'supported',
+                evidence_id: 'x',
+                quote: 'q',
+              },
+            ],
+          }),
+        },
+      ],
+      stopReason: 'end_turn',
+      usage: { inputTokens: 1, outputTokens: 1, costUsd: 0 },
+    });
+    stub.enqueue(
+      () => toolUse('ncci_check', { codes: ['98940', '97140'] }),
+      (req) => {
+        const wrong = answerCiting(issuedEvidenceIds(req)[0] ?? null) as Record<string, unknown>;
+        wrong['bottom_line'] =
+          'An NCCI PTP edit lists 98940 as a column 2 code with 97140; modifier indicator 1 permits separate payment.';
+        return toolUse('submit_answer', { answer: wrong });
+      },
+      partialVerdicts,
+      (req) => {
+        const last = req.messages[req.messages.length - 1];
+        if (last && Array.isArray(last.content)) {
+          for (const b of last.content) if (b.type === 'text') feedbackSeen = b.text;
+        }
+        return toolUse('submit_answer', {
+          answer: answerCiting(issuedEvidenceIds(req)[0] ?? null),
+        });
+      },
+      verifierAllSupported(),
+    );
+    const result = await ask(pool, stub, {
+      question: 'column order 98940 97140',
+      dos: '2026-08-25',
+    });
+    expect(result.revised).toBe(true);
+    expect(result.answer.abstained).toBe(false);
+    expect(result.answer.bottom_line).toContain('column 2 code with 98940');
+    expect(result.answer.confidence.level).toBe('high');
+    expect(feedbackSeen).toContain('column 1');
+  });
+
+  it('a revision that still fails verification does not rescue the abstention', async () => {
+    const unsupportedBottomLine = (): LlmResponse => ({
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            items: [
+              {
+                kind: 'bottom_line',
+                index: 0,
+                statement: 'bl',
+                verdict: 'unsupported',
+                evidence_id: null,
+                quote: null,
+                note: 'No cited excerpt supports the bottom line.',
+              },
+            ],
+          }),
+        },
+      ],
+      stopReason: 'end_turn',
+      usage: { inputTokens: 1, outputTokens: 1, costUsd: 0 },
+    });
+    const stub = new StubLlmClient();
+    stub.enqueue(
+      () => toolUse('ncci_check', { codes: ['98940', '97140'] }),
+      (req) =>
+        toolUse('submit_answer', { answer: answerCiting(issuedEvidenceIds(req)[0] ?? null) }),
+      unsupportedBottomLine,
+      (req) =>
+        toolUse('submit_answer', { answer: answerCiting(issuedEvidenceIds(req)[0] ?? null) }),
+      unsupportedBottomLine,
+    );
+    const result = await ask(pool, stub, {
+      question: 'still unsupported 98940 97140',
+      dos: '2026-08-25',
+    });
+    expect(result.answer.abstained).toBe(true);
+    expect(result.verifier?.abstainedByVerifier).toBe(true);
+    expect(result.revised).toBe(false);
   });
 
   it('PHI question is refused and the text is not persisted', async () => {
