@@ -42,6 +42,9 @@ export function parsePprrvuCsv(data: Buffer): MpfsRowParsed[] {
   if (header[2] !== 'DESCRIPTION' || header[3] !== 'CODE') {
     throw new Error(`PPRRVU header layout changed: ${header.slice(0, 6).join(',')}`);
   }
+  // The conversion factor column exists from the 2026 layout on (header cell FACTOR
+  // under a CONV caption row); older layouts carry no per-row conversion factor.
+  const cfIdx = header.indexOf('FACTOR');
   const out: MpfsRowParsed[] = [];
   for (const r of records.slice(headerIdx + 1)) {
     const code = (r[0] ?? '').trim();
@@ -62,7 +65,7 @@ export function parsePprrvuCsv(data: Buffer): MpfsRowParsed[] {
       bilateral: (r[19] ?? '').trim(),
       assistantSurg: (r[20] ?? '').trim(),
       coSurg: (r[21] ?? '').trim(),
-      convFactor: (r[25] ?? '').trim(),
+      convFactor: cfIdx >= 0 ? (r[cfIdx] ?? '').trim() : '',
     });
   }
   return out;

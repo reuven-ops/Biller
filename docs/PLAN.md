@@ -253,3 +253,36 @@ d. Open risks.
 e. Start conditions for Phase 1.
 
 1. Nothing needed from Reuven. Phase 1 begins immediately: discover real publisher URLs, build the couriers with committed fixtures, run full local ingestion, and complete docs/SOURCES.md.
+
+## Phase 1 report (2026-08-25)
+
+a. What works, with commands to reproduce.
+
+1. Couriers for sources 1 through 13 with committed real-file fixtures and 57 passing unit tests (pnpm test). Every URL was discovered live on 2026-08-25 and recorded in docs/SOURCES.md; URLs live in config/sources.yaml. Run any courier with pnpm ingest <source_id> [--limit N]; pnpm freshness shows the dashboard.
+2. Full local ingestion completed against the compose database. Every enabled Phase 1 source succeeded. Loads are transactional per document (a failure mid-load rolls back and retries next run), idempotent, and resumable; job locks with heartbeats guard concurrent runs.
+3. The scheduler runs in the worker from cadence_days with database job locks (docker compose up -d).
+4. The NCCI PTP and MCD couriers perform the CMS end-user license attestations through the publisher's own mechanisms, recorded per run (DECISIONS.md D7, D11), with the CMS_LICENSE_ATTESTATION=refuse kill switch.
+
+b. What is stubbed or blocked, and why.
+
+1. x12_carc_rarc (source 20) is disabled: the X12 Website Terms of Use prohibit scraping and AI use of the lists. Reuven: license the X12 External Code List at ecommerce.x12.org or request written permission (DECISIONS.md D10). Until then remit_behavior (Phase 4) will show raw CARC and RARC codes without labels.
+2. Conversion factors before 2026 are not loaded: the per-row column only exists from the 2026 RVU layout on (docs/SOURCES.md section 6). Payment estimates for earlier DOS will say the factor is unavailable.
+3. Three IOM chapter revision stamps parse as unknown (clm104c01, c05, c30 use a different title layout); the chapters themselves are fully ingested and chunked.
+4. mac_sites, payer_policies, uploads, call notes, and remit import are Phase 4 by design.
+
+c. Row counts by table and eval results by gate.
+
+1. ncci_ptp 2,633,128 (CMS states 2,633,389; the delta is duplicate keys in the published files, deduplicated keeping the row in force, verified by inspection). mue 15,162 (matches the file exactly). mpfs 152,462 across 8 quarterly releases (2024 Q4 to 2026 Q3). codes 71,319 HCPCS rows across 8 quarters. icd10cm 294,173 across FY2025 to FY2027. gpci 327. conversion_factor 3 (2026 Q1 to Q3). telehealth_services 283 (CY 2026). therapy_thresholds 1 (CY 2026: KX $2,480, MR $3,000). documents 5,221 and chunks 15,734 covering the NCCI manual (2026 edition), 6 IOM chapters, 993 transmittals with MLN article PDFs, 477 Federal Register rules (11 PFS rules in full text), 379 active OIG work plan items, ICD-10-CM guidelines, and 3,346 MCD documents (3,001 LCDs and Articles across the 39 configured MAC states plus 345 NCDs).
+2. Acceptance checks: 10 of 10 known NCCI PTP pairs match the published file (including the active 98940/97140 edit with modifier indicator 1); 5 of 5 LCD and Article documents verified against the MCD site by external_id and effective date; re-running four couriers wrote 0 rows with identical table totals before and after.
+3. Eval harness is Phase 2; no eval results yet.
+
+d. Open risks.
+
+1. Licensing: the X12 block above; the CMS attestations are recorded and reversible; CPT descriptors are dropped everywhere (fixtures redact them).
+2. Terms of use: cms.gov robots disallows query-string URLs, so MLN backfills through the explicitly allowed sitemap; federalregister.gov bot mitigation is treated as a hard stop if it ever reaches the API.
+3. Parser fragility: CMS re-mints URLs each quarter (scraped, never templated); the PPRRVU layout changed in 2026 (handled dynamically); the therapy page carries amounts only as prose anchored by phrasing; the OIG browse page is labeled Beta.
+4. Cost: zero model spend so far. Server capacity: full ingestion wrote roughly 3.5 GB of database and artifacts; well inside the 200 GB production sizing.
+
+e. Start conditions for Phase 2.
+
+1. Nothing needed from Reuven for the engine build. ANTHROPIC_API_KEY is needed to run the live eval gates at Phase 2 exit; without it the harness runs end to end in stub mode and the gates are reported as blocked on the key (D1).

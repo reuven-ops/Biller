@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@advisor/db": "workspace:*",
+    "@anthropic-ai/sdk": "^0.120.0",
+    "@huggingface/transformers": "^4.2.0",
     "yaml": "^2.9.0"
   }
 }
