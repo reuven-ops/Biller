@@ -15,6 +15,11 @@ if (!known) {
 }
 
 switch (command) {
+  case 'ask': {
+    const { runAskCommand } = await import('./commands/ask.js');
+    await runAskCommand(rest);
+    break;
+  }
   case 'ingest': {
     const { runIngestCommand } = await import('./commands/ingest.js');
     await runIngestCommand(rest);
