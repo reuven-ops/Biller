@@ -1,9 +1,12 @@
 import { closePool, getPool } from '@advisor/db';
-import { syncSources } from '@advisor/ingest';
+import { ALL_COURIERS, runCourier, syncSources } from '@advisor/ingest';
 
 export async function runIngestCommand(args: string[]): Promise<void> {
   const sourceId = args.find((a) => !a.startsWith('--'));
-  if (!sourceId) {
+  const limitIdx = args.indexOf('--limit');
+  const limitRaw = limitIdx >= 0 ? args[limitIdx + 1] : undefined;
+  const limit = limitRaw !== undefined ? Number.parseInt(limitRaw, 10) : undefined;
+  if (!sourceId || (limit !== undefined && Number.isNaN(limit))) {
     console.error('Usage: pnpm ingest <source_id> [--limit N]');
     process.exitCode = 1;
     return;
@@ -26,9 +29,29 @@ export async function runIngestCommand(args: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    // Couriers land in Phase 1 (PLAN.md M1.1 to M1.3); the registry sync above is real.
-    console.error(`The courier for ${sourceId} lands in Phase 1. Registry is synced.`);
-    process.exitCode = 2;
+    const courier = ALL_COURIERS.find((c) => c.sourceId === sourceId);
+    if (!courier) {
+      console.error(
+        `No courier registered for ${sourceId} yet. Registered: ` +
+          `${ALL_COURIERS.map((c) => c.sourceId).join(', ') || 'none'}.`,
+      );
+      process.exitCode = 2;
+      return;
+    }
+    const outcome = await runCourier(pool, courier, { limit });
+    if (!outcome.ran) {
+      console.error('Another worker holds the lock for this courier; not run.');
+      process.exitCode = 3;
+      return;
+    }
+    console.log(
+      `${sourceId}: ${outcome.status}, ${outcome.rowsWritten} rows written.` +
+        (outcome.notes ? ` ${outcome.notes}` : ''),
+    );
+    if (outcome.status === 'failed') {
+      console.error(`error: ${outcome.error ?? 'unknown'}`);
+      process.exitCode = 1;
+    }
   } finally {
     await closePool();
   }

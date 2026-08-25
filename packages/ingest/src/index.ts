@@ -1,1 +1,14 @@
 export { syncSources } from './sync-sources.js';
+export { Fetcher, EgressDeniedError } from './fetcher.js';
+export type { FetchedArtifact } from './fetcher.js';
+export { upsertDocument, replaceChunks } from './doc-store.js';
+export type { UpsertDocumentInput, UpsertDocumentResult, ChunkInput } from './doc-store.js';
+export { chunkSections, extractCodes, estimateTokens } from './chunker.js';
+export type { Section, Chunk } from './chunker.js';
+export { extractPdfLines, sectionsFromLines } from './pdf.js';
+export type { PdfExtraction } from './pdf.js';
+export { acquireJobLock, withJobLock, DEAD_LOCK_MINUTES } from './job-locks.js';
+export { runCourier } from './courier.js';
+export type { Courier, CourierContext, CourierResult, RunOutcome } from './courier.js';
+export { startScheduler, runDueCouriers, couriersById } from './scheduler.js';
+export { ALL_COURIERS } from './couriers/index.js';
