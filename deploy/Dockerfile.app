@@ -15,6 +15,7 @@ COPY packages ./packages
 COPY apps ./apps
 COPY evals ./evals
 COPY config ./config
+COPY docs ./docs
 RUN pnpm install --frozen-lockfile
 EXPOSE 3000
 CMD ["pnpm", "exec", "tsx", "apps/web/src/server.ts"]
