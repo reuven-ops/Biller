@@ -221,3 +221,35 @@ Acceptance checks (brief Phase 7 gate):
 # Phase reports
 
 Phase reports are appended below as each phase completes, in the format of brief section 19.7.
+
+## Phase 0 report (2026-08-25)
+
+a. What works, with commands to reproduce.
+
+1. pnpm install, pnpm lint (ESLint, Prettier, strict tsc), and pnpm test all pass from a clean checkout. 15 tests: migration file integrity, config registry integrity, egress allowlist matching, CLI help coverage, and 5 database integration tests.
+2. docker compose -f deploy/docker-compose.yml up -d brings up db (pgvector/pgvector:pg16), app, and worker. The db bootstrap creates the migrator and app roles and the advisor database and installs pgvector. Verified: all three containers up, db healthy.
+3. pnpm db:migrate applies the 7 migrations covering every table in brief section 5, with indexes for hybrid retrieval (HNSW on embeddings, GIN on tsvector and codes_mentioned, date-window btrees). A second run is a no-op (verified: 0 applied, 7 already applied). A checksum mismatch on an applied migration aborts.
+4. Append-only enforcement by database grants, proven by tests: the app role can INSERT and SELECT but not UPDATE, DELETE, or TRUNCATE on qa_log, qa_feedback, change_events, call_note_history, cannot run DDL, and cannot write schema_migrations. GET /healthz on the app reports database connectivity and applied migration count ({"ok":true,"db":{"ok":true,"migrations":7}} verified).
+5. The worker starts, syncs the 20-source registry from config/sources.yaml into the sources table, and idles until the Phase 1 scheduler. pnpm freshness prints the freshness table (all sources STALE, never run, which is true). CLI help covers every command in CLAUDE.md; unimplemented commands say which phase they arrive in.
+6. GitHub Actions CI: install, lint, role bootstrap, migrate, full test suite with RUN_INTEGRATION=1 against a pgvector service container, dependency audit.
+
+b. What is stubbed or blocked, and why.
+
+1. ANTHROPIC_API_KEY is not present in this environment. Everything model-facing is planned behind one client wrapper with a deterministic stub mode (docs/DECISIONS.md D1); no model calls exist yet in Phase 0.
+2. Couriers, retrieval, and the agent loop are Phase 1 and Phase 2 work; the CLI says so instead of pretending.
+3. Caddy, backups on a schedule, and production hardening are Phase 5; backup.sh and restore.sh exist and run by hand.
+
+c. Row counts by table and eval results by gate.
+
+1. sources: 20 rows (registry sync from config/sources.yaml). All other tables: 0 rows, nothing ingested yet.
+2. Eval harness does not exist yet (Phase 2); no eval results to report.
+
+d. Open risks.
+
+1. The build environment inspects outbound TLS; Docker image builds need the optional CA build argument (D5). Production servers are unaffected.
+2. pgvector in the pinned image is not marked trusted; handled at bootstrap (D6).
+3. TypeScript resolves to 7.x by default now; pinned to 5.9 for typescript-eslint compatibility. Revisit when typescript-eslint supports 7.
+
+e. Start conditions for Phase 1.
+
+1. Nothing needed from Reuven. Phase 1 begins immediately: discover real publisher URLs, build the couriers with committed fixtures, run full local ingestion, and complete docs/SOURCES.md.

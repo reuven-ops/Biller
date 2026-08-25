@@ -26,3 +26,15 @@ Numbered, newest last. Each entry states the decision, the reason, and what woul
 1. Decision: chunks.embedding is vector(EMBEDDING_DIM) with the dimension substituted by the migration runner from env, default 768 to match bge-base-en-v1.5, the leading candidate. The final model choice lands in Phase 2 milestone M2.1 and is recorded here.
 2. Reason: migrations ship in Phase 0 before the model decision; parameterizing avoids a rewrite.
 3. What would change it: choosing a model with a different dimension in M2.1; the migration runner re-creates the column and index on an empty corpus, or a re-embed job runs on a populated one.
+
+## D5. Optional build-time CA argument in the Dockerfiles (2026-08-25)
+
+1. Decision: Dockerfile.app and Dockerfile.worker accept an optional EXTRA_CA_B64 build argument (base64 PEM). When set, the certificates are written into the image and NODE_EXTRA_CA_CERTS points at them; when empty, the file is empty and nothing changes. docker-compose.yml passes it from BUILD_EXTRA_CA_B64.
+2. Reason: the build environment inspects outbound TLS with its own certificate authority, so pnpm install inside docker build fails certificate verification without it. Production servers build with the argument unset and trust only the public certificate store.
+3. What would change it: nothing; it is inert outside inspected environments.
+
+## D6. pgvector extension installed at bootstrap, not by migrations (2026-08-25)
+
+1. Decision: deploy/initdb/01-roles.sh installs the vector extension into template1 and the advisor database as the Postgres superuser when the data volume first initializes. Migration 0001 keeps CREATE EXTENSION IF NOT EXISTS as a safeguard.
+2. Reason: the pgvector build in the pgvector/pgvector:pg16 image is not marked trusted, so the non-superuser migrator role cannot create the extension itself. Installing into template1 also covers scratch databases created by integration tests.
+3. What would change it: a pgvector build marked trusted; the bootstrap step would become redundant but harmless.

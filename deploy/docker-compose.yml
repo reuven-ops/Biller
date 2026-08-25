@@ -1,0 +1,60 @@
+# Local development compose (brief Phase 0). Production overrides (caddy, restart
+# policies, backup schedule) land in Phase 5. Run from the repo root:
+#   docker compose -f deploy/docker-compose.yml up -d
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD:-postgres_local_dev_pw}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:-migrator_local_dev_pw}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-app_local_dev_pw}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - backups:/backups
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d advisor || pg_isready -U postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.app
+      args:
+        EXTRA_CA_B64: ${BUILD_EXTRA_CA_B64:-}
+    environment:
+      DATABASE_URL: postgres://app:${DB_APP_PASSWORD:-app_local_dev_pw}@db:5432/advisor
+      MIGRATOR_DATABASE_URL: postgres://migrator:${DB_MIGRATOR_PASSWORD:-migrator_local_dev_pw}@db:5432/advisor
+      APP_PORT: '3000'
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+      args:
+        EXTRA_CA_B64: ${BUILD_EXTRA_CA_B64:-}
+    environment:
+      DATABASE_URL: postgres://app:${DB_APP_PASSWORD:-app_local_dev_pw}@db:5432/advisor
+      ARTIFACTS_DIR: /artifacts
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
+    volumes:
+      - artifacts:/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
+  backups:
+  artifacts:
