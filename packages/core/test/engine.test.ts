@@ -5,6 +5,7 @@ import { phiRegexScreen } from '../src/phi.js';
 import { normalizeQuestion } from '../src/agent-loop.js';
 import { EvidenceRegistry } from '../src/evidence.js';
 import { costUsd } from '../src/llm.js';
+import { modifierTsquery, queryModifierTokens } from '../src/retrieval.js';
 
 const FRESHNESS = { as_of: '2026-08-25', stale_sources: [] };
 const APPLICABILITY = {
@@ -169,5 +170,29 @@ describe('cost accounting', () => {
     expect(costUsd('claude-sonnet-5', 1_000_000, 0)).toBe(2);
     expect(costUsd('claude-haiku-4-5-20251001', 0, 1_000_000)).toBe(5);
     expect(costUsd('claude-opus-5', 1_000_000, 1_000_000)).toBe(30);
+  });
+});
+
+describe('modifier token extraction for the exact-search arm', () => {
+  it('finds known modifiers named next to the word modifier, either side', () => {
+    expect(queryModifierTokens('Which visits need the AT modifier for Medicare?')).toEqual(['at']);
+    expect(queryModifierTokens('Is modifier KX required above the threshold?')).toEqual(['kx']);
+    expect(queryModifierTokens('modifier 59 vs XS modifier for 97140')).toEqual(
+      expect.arrayContaining(['59', 'xs']),
+    );
+  });
+
+  it('ignores two-letter words that are not billing modifiers', () => {
+    expect(queryModifierTokens('is a modifier needed on this claim')).toEqual([]);
+    expect(queryModifierTokens('no modifier applies here')).toEqual([]);
+    expect(queryModifierTokens('what does the manual say about modifiers')).toEqual([]);
+  });
+
+  it('builds a phrase-adjacency tsquery, empty for no tokens', () => {
+    expect(modifierTsquery([])).toBe('');
+    const q = modifierTsquery(['at']);
+    expect(q).toContain('(at <-> modifier)');
+    expect(q).toContain('(modifier <-> at)');
+    expect(q).not.toContain('&');
   });
 });

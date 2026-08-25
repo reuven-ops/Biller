@@ -70,6 +70,93 @@ export function queryCodes(query: string): string[] {
   return [...out];
 }
 
+// Two-character HCPCS billing modifiers. The english FTS config drops "at" as a
+// stopword, so without an exact-token arm a query about the AT modifier can never
+// lexically reach the passage that defines it (measured: the IOM 240.1.3 chunk
+// ranked 14,851 of 15,968 by embedding for eval item A1's question).
+const MODIFIER_TOKENS = new Set([
+  'at',
+  'kx',
+  'ga',
+  'gx',
+  'gy',
+  'gz',
+  'gp',
+  'go',
+  'gn',
+  'cq',
+  'co',
+  'cr',
+  'cs',
+  'xe',
+  'xp',
+  'xs',
+  'xu',
+  'lt',
+  'rt',
+  'tc',
+  '24',
+  '25',
+  '26',
+  '50',
+  '51',
+  '52',
+  '53',
+  '54',
+  '55',
+  '57',
+  '58',
+  '59',
+  '62',
+  '66',
+  '76',
+  '77',
+  '78',
+  '79',
+  '80',
+  '81',
+  '82',
+  '90',
+  '91',
+  '95',
+  '96',
+  '97',
+  '99',
+]);
+
+/**
+ * Known billing modifiers named next to the word "modifier" in the query. Two
+ * passes, one per direction: a single alternation would let "Is modifier" match
+ * the token-then-modifier branch and consume the word "modifier" away from the
+ * "modifier KX" pair that follows it.
+ */
+export function queryModifierTokens(query: string): string[] {
+  const out = new Set<string>();
+  const passes = [/\bmodifiers?\s+-?([A-Za-z0-9]{2})\b/gi, /\b-?([A-Za-z0-9]{2})\s+modifiers?\b/gi];
+  for (const re of passes) {
+    for (const m of query.matchAll(re)) {
+      const token = (m[1] ?? '').toLowerCase();
+      if (MODIFIER_TOKENS.has(token)) out.add(token);
+    }
+  }
+  return [...out];
+}
+
+/**
+ * The simple-config tsquery for the exact-token arm: the modifier token must sit
+ * directly next to the word modifier(s), as in "AT modifier" or "modifier AT".
+ * Plain co-occurrence is far too broad ("at" appears in nearly every chunk that
+ * also says "modifier" somewhere). Empty when no modifier is named in the query.
+ */
+export function modifierTsquery(tokens: string[]): string {
+  return tokens
+    .map(
+      (t) =>
+        `(${t} <-> modifier) | (${t} <-> modifiers) | (modifier <-> ${t}) | (modifiers <-> ${t})`,
+    )
+    .join(' | ');
+}
+
 export async function hybridRetrieve(
   pool: Pool,
   registry: EvidenceRegistry,
@@ -101,8 +188,10 @@ export async function hybridRetrieve(
     [...params, vector],
   );
 
-  // Arm 2: full text plus exact code matching.
+  // Arm 2: full text, exact code matching, and exact modifier tokens (the
+  // simple-config tsvector keeps stopword-shaped modifiers like AT).
   const codes = queryCodes(query);
+  const modifierQuery = modifierTsquery(queryModifierTokens(query));
   const textRows = await pool.query<CandidateRow>(
     `SELECT ${SELECT_FIELDS}
      FROM chunks c
@@ -110,11 +199,13 @@ export async function hybridRetrieve(
      JOIN sources s ON s.id = d.source_id
      WHERE ${BASE_FILTER}
        AND (c.tsv @@ plainto_tsquery('english', $7)
-            OR ($8::text[] <> '{}' AND c.codes_mentioned && $8::text[]))
+            OR ($8::text[] <> '{}' AND c.codes_mentioned && $8::text[])
+            OR ($9::text <> '' AND c.tsv_simple @@ to_tsquery('simple', $9)))
      ORDER BY (c.codes_mentioned && $8::text[])::int DESC,
+              ($9::text <> '' AND c.tsv_simple @@ to_tsquery('simple', $9))::int DESC,
               ts_rank(c.tsv, plainto_tsquery('english', $7)) DESC
      LIMIT ${candidateK}`,
-    [...params, query, codes],
+    [...params, query, codes, modifierQuery],
   );
 
   // Reciprocal rank fusion.

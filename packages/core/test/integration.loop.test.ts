@@ -437,6 +437,32 @@ suite('agent loop end to end (stub client)', () => {
     expect(result.revised).toBe(false);
   });
 
+  it('tsv_simple keeps the AT token that the english config drops', async () => {
+    const doc = await pool.query<{ id: string }>(
+      `INSERT INTO documents (source_id, external_id, doc_type, title, version_hash, tier)
+       VALUES ('cms_ncci_ptp', 'at-modifier-doc', 'manual', 'AT test', 'h-at', 2) RETURNING id`,
+    );
+    await pool.query(
+      `INSERT INTO chunks (document_id, ordinal, text, token_count, tier)
+       VALUES ($1, 0, 'A chiropractor must place an AT modifier on the claim for active treatment.', 15, 2)`,
+      [doc.rows[0]!.id],
+    );
+    const simple = await pool.query(
+      `SELECT 1 FROM chunks WHERE document_id = $1
+       AND tsv_simple @@ to_tsquery('simple', '(at <-> modifier) | (modifier <-> at)')`,
+      [doc.rows[0]!.id],
+    );
+    expect(simple.rows).toHaveLength(1);
+    // The english config drops "AT" as a stopword, so the token is inexpressible
+    // there: a query of just "AT" becomes empty and matches nothing.
+    const english = await pool.query(
+      `SELECT 1 FROM chunks WHERE document_id = $1
+       AND tsv @@ plainto_tsquery('english', 'AT')`,
+      [doc.rows[0]!.id],
+    );
+    expect(english.rows).toHaveLength(0);
+  });
+
   it('PHI question is refused and the text is not persisted', async () => {
     const stub = new StubLlmClient();
     const result = await ask(pool, stub, {
