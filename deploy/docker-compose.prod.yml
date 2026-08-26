@@ -1,0 +1,81 @@
+# Production compose (Phase 5, first slice): db, app, worker, caddy. Run from the
+# repo root with the server .env in place:
+#   docker compose -f deploy/docker-compose.prod.yml up -d --build
+# Postgres is never published outside the compose network; only caddy listens on
+# the host (80 and 443). APP_HOSTNAME drives automatic HTTPS; an http:// value
+# disables TLS for bare-IP testing.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD:?set in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?set in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?set in .env}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - backups:/backups
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d advisor || pg_isready -U postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.app
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgres://app:${DB_APP_PASSWORD}@db:5432/advisor
+      MIGRATOR_DATABASE_URL: postgres://migrator:${DB_MIGRATOR_PASSWORD}@db:5432/advisor
+      APP_PORT: '3000'
+      MODELS_DIR: /models
+    volumes:
+      - models:/models
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgres://app:${DB_APP_PASSWORD}@db:5432/advisor
+      ARTIFACTS_DIR: /artifacts
+      MODELS_DIR: /models
+    volumes:
+      - artifacts:/artifacts
+      - models:/models
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      APP_HOSTNAME: ${APP_HOSTNAME:?set in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  dbdata:
+  backups:
+  artifacts:
+  models:
+  caddy_data:
+  caddy_config:

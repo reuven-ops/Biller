@@ -1,0 +1,6 @@
+# HTTPS reverse proxy for production (Phase 5). Automatic certificates when the
+# hostname is public; internal CA when it is not. Both paths are documented in
+# docs/RUNBOOK.md when Phase 5 lands.
+{$APP_HOSTNAME:localhost} {
+	reverse_proxy app:3000
+}

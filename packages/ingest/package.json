@@ -1,0 +1,26 @@
+{
+  "name": "@advisor/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@advisor/core": "workspace:*",
+    "@advisor/db": "workspace:*",
+    "adm-zip": "^0.6.0",
+    "croner": "^10.0.1",
+    "csv-parse": "^7.0.2",
+    "pdfjs-dist": "^6.2.108",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.0"
+  }
+}

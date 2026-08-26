@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - name: Bootstrap database roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE migrator LOGIN PASSWORD 'migrator_ci_pw';
+          CREATE ROLE app LOGIN PASSWORD 'app_ci_pw';
+          CREATE DATABASE advisor OWNER migrator;
+          SQL
+          psql -h localhost -U postgres -d template1 -v ON_ERROR_STOP=1 \
+            -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+          psql -h localhost -U postgres -d advisor -v ON_ERROR_STOP=1 \
+            -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+      - name: Migrate
+        env:
+          MIGRATOR_DATABASE_URL: postgres://migrator:migrator_ci_pw@localhost:5432/advisor
+        run: pnpm db:migrate
+      - name: Test
+        env:
+          RUN_INTEGRATION: '1'
+          TEST_ADMIN_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+          TEST_MIGRATOR_PASSWORD: migrator_ci_pw
+          TEST_APP_PASSWORD: app_ci_pw
+          DATABASE_URL: postgres://app:app_ci_pw@localhost:5432/advisor
+          MIGRATOR_DATABASE_URL: postgres://migrator:migrator_ci_pw@localhost:5432/advisor
+        run: pnpm test
+      - name: Dependency audit
+        run: pnpm audit --audit-level high

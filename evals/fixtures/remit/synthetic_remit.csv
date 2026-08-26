@@ -1,0 +1,25 @@
+claim_ref,line_ref,payer_name,payer_id,plan_product,lob,state,client_ref,provider_type,dos,cpt,modifiers,icd_primary,units,billed_amount,allowed_amount,paid_amount,carc,rarc,denied_flag,appealed_flag,appeal_outcome,remit_date
+C1001,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-04,97140,59,M99.01,1,85.00,42.10,42.10,,,0,0,na,2025-04-01
+C1002,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-05,97140,59,M99.02,1,85.00,0.00,0.00,97,N19,1,1,overturned,2025-04-02
+C1003,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-06,97140,59,M99.01,1,85.00,0.00,0.00,97,N19,1,1,upheld,2025-04-03
+C1004,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-07,97140,59,M99.03,1,85.00,0.00,0.00,97,,1,0,na,2025-04-04
+C1005,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-10,97140,59,M99.01,1,85.00,41.80,41.80,,,0,0,na,2025-04-07
+C1006,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-11,97140,59,M99.02,1,85.00,0.00,0.00,16,M76,1,0,na,2025-04-08
+C1007,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-12,97140,59,M99.01,1,85.00,42.10,42.10,,,0,0,na,2025-04-09
+C1008,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-13,97140,59,M99.02,1,85.00,0.00,0.00,97,N19,1,1,overturned,2025-04-10
+C1009,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL02,DC,2025-04-02,98940,,M99.01,1,65.00,31.50,31.50,,,0,0,na,2025-05-01
+C1010,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL02,DC,2025-04-03,98940,,M99.02,1,65.00,31.50,31.50,,,0,0,na,2025-05-02
+C1011,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL02,DC,2025-04-04,98940,,M99.01,1,65.00,0.00,0.00,50,N115,1,0,na,2025-05-03
+C1012,1,Aetna,60054,Open Access,Commercial,FL,CL01,LCSW,2025-05-06,90837,,F41.1,1,150.00,98.20,98.20,,,0,0,na,2025-06-01
+C1013,1,Aetna,60054,Open Access,Commercial,FL,CL01,LCSW,2025-05-07,90837,,F41.1,1,150.00,98.20,98.20,,,0,0,na,2025-06-02
+C1014,1,Aetna,60054,Open Access,Commercial,FL,CL01,LCSW,2025-05-08,90837,,F32.1,1,150.00,0.00,0.00,197,N54,1,1,pending,2025-06-03
+C1015,1,Aetna,60054,Open Access,Commercial,FL,CL01,LCSW,2025-05-09,90837,,F41.1,1,150.00,98.20,98.20,,,0,0,na,2025-06-04
+C1016,1,Aetna,60054,Open Access,Commercial,FL,CL01,LCSW,2025-05-12,90837,,F33.1,1,150.00,0.00,0.00,197,N54,1,1,overturned,2025-06-05
+C1017,1,Aetna,60054,Open Access,Commercial,FL,CL02,LCSW,2026-01-06,90837,,F41.1,1,155.00,101.00,101.00,,,0,0,na,2026-02-02
+C1018,1,Aetna,60054,Open Access,Commercial,FL,CL02,LCSW,2026-01-07,90837,,F41.1,1,155.00,101.00,101.00,,,0,0,na,2026-02-03
+C1019,1,UnitedHealthcare,87726,Medicare Advantage PPO,MA,FL,CL01,PT,2025-06-02,97110,GP,M25.561,2,120.00,54.60,54.60,,,0,0,na,2025-07-01
+C1020,1,UnitedHealthcare,87726,Medicare Advantage PPO,MA,FL,CL01,PT,2025-06-03,97110,GP,M25.562,2,120.00,0.00,0.00,119,,1,0,na,2025-07-02
+C1021,1,UnitedHealthcare,87726,Medicare Advantage PPO,MA,FL,CL01,PT,2025-06-04,97110,GP,M25.561,2,120.00,54.60,54.60,,,0,0,na,2025-07-03
+C1022,2,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-05,98940,,M99.02,1,65.00,31.10,31.10,,,0,0,na,2025-04-02
+C1023,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-18,97140,59,M99.01,1,85.00,0.00,0.00,97,N19,1,1,partial,2025-04-15
+C1024,1,UnitedHealthcare,87726,Choice Plus,Commercial,FL,CL01,DC,2025-03-19,97140,59,M99.02,1,85.00,42.10,42.10,,,0,0,na,2025-04-16

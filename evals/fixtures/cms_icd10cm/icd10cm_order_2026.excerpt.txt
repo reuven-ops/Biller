@@ -1,0 +1,100 @@
+00001 A00     0 Cholera                                                      Cholera
+00002 A000    1 Cholera due to Vibrio cholerae 01, biovar cholerae           Cholera due to Vibrio cholerae 01, biovar cholerae
+00003 A001    1 Cholera due to Vibrio cholerae 01, biovar eltor              Cholera due to Vibrio cholerae 01, biovar eltor
+00004 A009    1 Cholera, unspecified                                         Cholera, unspecified
+00005 A01     0 Typhoid and paratyphoid fevers                               Typhoid and paratyphoid fevers
+00006 A010    0 Typhoid fever                                                Typhoid fever
+00007 A0100   1 Typhoid fever, unspecified                                   Typhoid fever, unspecified
+00008 A0101   1 Typhoid meningitis                                           Typhoid meningitis
+00009 A0102   1 Typhoid fever with heart involvement                         Typhoid fever with heart involvement
+00010 A0103   1 Typhoid pneumonia                                            Typhoid pneumonia
+00011 A0104   1 Typhoid arthritis                                            Typhoid arthritis
+00012 A0105   1 Typhoid osteomyelitis                                        Typhoid osteomyelitis
+00013 A0109   1 Typhoid fever with other complications                       Typhoid fever with other complications
+00014 A011    1 Paratyphoid fever A                                          Paratyphoid fever A
+00015 A012    1 Paratyphoid fever B                                          Paratyphoid fever B
+00016 A013    1 Paratyphoid fever C                                          Paratyphoid fever C
+00017 A014    1 Paratyphoid fever, unspecified                               Paratyphoid fever, unspecified
+00018 A02     0 Other salmonella infections                                  Other salmonella infections
+00019 A020    1 Salmonella enteritis                                         Salmonella enteritis
+00020 A021    1 Salmonella sepsis                                            Salmonella sepsis
+00021 A022    0 Localized salmonella infections                              Localized salmonella infections
+00022 A0220   1 Localized salmonella infection, unspecified                  Localized salmonella infection, unspecified
+00023 A0221   1 Salmonella meningitis                                        Salmonella meningitis
+00024 A0222   1 Salmonella pneumonia                                         Salmonella pneumonia
+00025 A0223   1 Salmonella arthritis                                         Salmonella arthritis
+00026 A0224   1 Salmonella osteomyelitis                                     Salmonella osteomyelitis
+00027 A0225   1 Salmonella pyelonephritis                                    Salmonella pyelonephritis
+00028 A0229   1 Salmonella with other localized infection                    Salmonella with other localized infection
+00029 A028    1 Other specified salmonella infections                        Other specified salmonella infections
+00030 A029    1 Salmonella infection, unspecified                            Salmonella infection, unspecified
+00031 A03     0 Shigellosis                                                  Shigellosis
+00032 A030    1 Shigellosis due to Shigella dysenteriae                      Shigellosis due to Shigella dysenteriae
+00033 A031    1 Shigellosis due to Shigella flexneri                         Shigellosis due to Shigella flexneri
+00034 A032    1 Shigellosis due to Shigella boydii                           Shigellosis due to Shigella boydii
+00035 A033    1 Shigellosis due to Shigella sonnei                           Shigellosis due to Shigella sonnei
+00036 A038    1 Other shigellosis                                            Other shigellosis
+00037 A039    1 Shigellosis, unspecified                                     Shigellosis, unspecified
+00038 A04     0 Other bacterial intestinal infections                        Other bacterial intestinal infections
+00039 A040    1 Enteropathogenic Escherichia coli infection                  Enteropathogenic Escherichia coli infection
+00040 A041    1 Enterotoxigenic Escherichia coli infection                   Enterotoxigenic Escherichia coli infection
+00041 A042    1 Enteroinvasive Escherichia coli infection                    Enteroinvasive Escherichia coli infection
+00042 A043    1 Enterohemorrhagic Escherichia coli infection                 Enterohemorrhagic Escherichia coli infection
+00043 A044    1 Other intestinal Escherichia coli infections                 Other intestinal Escherichia coli infections
+00044 A045    1 Campylobacter enteritis                                      Campylobacter enteritis
+00045 A046    1 Enteritis due to Yersinia enterocolitica                     Enteritis due to Yersinia enterocolitica
+00046 A047    0 Enterocolitis due to Clostridium difficile                   Enterocolitis due to Clostridium difficile
+00047 A0471   1 Enterocolitis due to Clostridium difficile, recurrent        Enterocolitis due to Clostridium difficile, recurrent
+00048 A0472   1 Enterocolitis d/t Clostridium difficile, not spcf as recur   Enterocolitis due to Clostridium difficile, not specified as recurrent
+00049 A048    1 Other specified bacterial intestinal infections              Other specified bacterial intestinal infections
+00050 A049    1 Bacterial intestinal infection, unspecified                  Bacterial intestinal infection, unspecified
+00051 A05     0 Oth bacterial foodborne intoxications, NEC                   Other bacterial foodborne intoxications, not elsewhere classified
+00052 A050    1 Foodborne staphylococcal intoxication                        Foodborne staphylococcal intoxication
+00053 A051    1 Botulism food poisoning                                      Botulism food poisoning
+00054 A052    1 Foodborne Clostridium perfringens intoxication               Foodborne Clostridium perfringens [Clostridium welchii] intoxication
+00055 A053    1 Foodborne Vibrio parahaemolyticus intoxication               Foodborne Vibrio parahaemolyticus intoxication
+00056 A054    1 Foodborne Bacillus cereus intoxication                       Foodborne Bacillus cereus intoxication
+00057 A055    1 Foodborne Vibrio vulnificus intoxication                     Foodborne Vibrio vulnificus intoxication
+00058 A058    1 Other specified bacterial foodborne intoxications            Other specified bacterial foodborne intoxications
+00059 A059    1 Bacterial foodborne intoxication, unspecified                Bacterial foodborne intoxication, unspecified
+00060 A06     0 Amebiasis                                                    Amebiasis
+20055 M54     0 Dorsalgia                                                    Dorsalgia
+20056 M540    0 Panniculitis affecting regions of neck and back              Panniculitis affecting regions of neck and back
+20057 M5400   1 Panniculitis affecting regions of neck and back, site unsp   Panniculitis affecting regions of neck and back, site unspecified
+20058 M5401   1 Panniculitis aff regions of neck/bk, occipt-atlan-ax region  Panniculitis affecting regions of neck and back, occipito-atlanto-axial region
+20059 M5402   1 Panniculitis affecting regions of neck/bk, cervical region   Panniculitis affecting regions of neck and back, cervical region
+20060 M5403   1 Panniculitis aff regions of neck/bk, cervicothor region      Panniculitis affecting regions of neck and back, cervicothoracic region
+20061 M5404   1 Panniculitis affecting regions of neck/bk, thoracic region   Panniculitis affecting regions of neck and back, thoracic region
+20062 M5405   1 Panniculitis affecting regions of neck/bk, thoracolum region Panniculitis affecting regions of neck and back, thoracolumbar region
+20063 M5406   1 Panniculitis affecting regions of neck/bk, lumbar region     Panniculitis affecting regions of neck and back, lumbar region
+20064 M5407   1 Panniculitis affecting regions of neck/bk, lumbosacr region  Panniculitis affecting regions of neck and back, lumbosacral region
+20065 M5408   1 Panniculitis aff regions of neck/bk, sacr/sacrocygl region   Panniculitis affecting regions of neck and back, sacral and sacrococcygeal region
+20066 M5409   1 Panniculitis aff regions, neck/bk, multiple sites in spine   Panniculitis affecting regions, neck and back, multiple sites in spine
+20067 M541    0 Radiculopathy                                                Radiculopathy
+20068 M5410   1 Radiculopathy, site unspecified                              Radiculopathy, site unspecified
+20069 M5411   1 Radiculopathy, occipito-atlanto-axial region                 Radiculopathy, occipito-atlanto-axial region
+20070 M5412   1 Radiculopathy, cervical region                               Radiculopathy, cervical region
+20071 M5413   1 Radiculopathy, cervicothoracic region                        Radiculopathy, cervicothoracic region
+20072 M5414   1 Radiculopathy, thoracic region                               Radiculopathy, thoracic region
+20073 M5415   1 Radiculopathy, thoracolumbar region                          Radiculopathy, thoracolumbar region
+20074 M5416   1 Radiculopathy, lumbar region                                 Radiculopathy, lumbar region
+20075 M5417   1 Radiculopathy, lumbosacral region                            Radiculopathy, lumbosacral region
+20076 M5418   1 Radiculopathy, sacral and sacrococcygeal region              Radiculopathy, sacral and sacrococcygeal region
+20077 M542    1 Cervicalgia                                                  Cervicalgia
+20078 M543    0 Sciatica                                                     Sciatica
+20079 M5430   1 Sciatica, unspecified side                                   Sciatica, unspecified side
+20080 M5431   1 Sciatica, right side                                         Sciatica, right side
+20081 M5432   1 Sciatica, left side                                          Sciatica, left side
+20082 M544    0 Lumbago with sciatica                                        Lumbago with sciatica
+20083 M5440   1 Lumbago with sciatica, unspecified side                      Lumbago with sciatica, unspecified side
+20084 M5441   1 Lumbago with sciatica, right side                            Lumbago with sciatica, right side
+20085 M5442   1 Lumbago with sciatica, left side                             Lumbago with sciatica, left side
+20086 M545    0 Low back pain                                                Low back pain
+20087 M5450   1 Low back pain, unspecified                                   Low back pain, unspecified
+20088 M5451   1 Vertebrogenic low back pain                                  Vertebrogenic low back pain
+20089 M5459   1 Other low back pain                                          Other low back pain
+20090 M546    1 Pain in thoracic spine                                       Pain in thoracic spine
+20091 M548    0 Other dorsalgia                                              Other dorsalgia
+20092 M5481   1 Occipital neuralgia                                          Occipital neuralgia
+20093 M5489   1 Other dorsalgia                                              Other dorsalgia
+20094 M549    1 Dorsalgia, unspecified                                       Dorsalgia, unspecified

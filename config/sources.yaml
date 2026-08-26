@@ -1,0 +1,245 @@
+# Source registry per brief section 6. base_url and config.urls are discovered at build
+# time (Phase 1 for sources 1 to 13 and 20; Phase 4 for payer sources) and recorded with
+# retrieval dates in docs/SOURCES.md. URLs live here, not in code.
+sources:
+  - id: cms_mcd
+    name: Medicare Coverage Database
+    publisher: CMS
+    kind: download
+    cadence_days: 7
+    tier: 3
+    license_required: true # CMS end-user license attestation (D7); token flow per D11
+    enabled: true
+    base_url: 'https://api.coverage.cms.gov'
+  - id: cms_ncci_ptp
+    name: NCCI PTP edits, practitioner services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/national-correct-coding-initiative-ncci-edits/medicare-ncci-procedure-procedure-ptp-edits'
+  - id: cms_ncci_mue
+    name: MUE practitioner services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/national-correct-coding-initiative-ncci-edits/medicare-ncci-medically-unlikely-edits-mues'
+  - id: cms_ncci_manual
+    name: NCCI Policy Manual for Medicare Services
+    publisher: CMS
+    kind: pdf
+    cadence_days: 365
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/national-correct-coding-initiative-ncci-edits/medicare-ncci-policy-manual'
+  - id: cms_hcpcs
+    name: HCPCS Level II quarterly update
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/healthcare-common-procedure-system/quarterly-update'
+    config:
+      backfill_quarters: 8
+  - id: cms_mpfs
+    name: PFS RVU files, conversion factor, GPCI
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false # descriptors inside are AMA CPT; not stored unless licensed
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/payment/fee-schedules/physician/pfs-relative-value-files'
+    config:
+      backfill_quarters: 8
+  - id: cms_icd10cm
+    name: ICD-10-CM code tables and Official Guidelines
+    publisher: CMS
+    kind: download
+    cadence_days: 182
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/icd-10-codes'
+  - id: cms_iom
+    name: Internet-Only Manuals, selected chapters
+    publisher: CMS
+    kind: pdf
+    cadence_days: 30
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/regulations-guidance/manuals/internet-only-manuals-ioms'
+    config:
+      chapters:
+        - manual: '100-02'
+          chapter: '15'
+          title: 'Medicare Benefit Policy Manual, Chapter 15, Covered Medical and Other Health Services'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/bp102c15.pdf'
+          note: 'therapy 220 to 230, chiropractic 240'
+        - manual: '100-04'
+          chapter: '1'
+          title: 'Medicare Claims Processing Manual, Chapter 1, General Billing Requirements'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf'
+        - manual: '100-04'
+          chapter: '5'
+          title: 'Medicare Claims Processing Manual, Chapter 5, Part B Outpatient Rehabilitation'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c05.pdf'
+        - manual: '100-04'
+          chapter: '12'
+          title: 'Medicare Claims Processing Manual, Chapter 12, Physicians and Nonphysician Practitioners'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c12.pdf'
+        - manual: '100-04'
+          chapter: '30'
+          title: 'Medicare Claims Processing Manual, Chapter 30, Financial Liability Protections'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c30.pdf'
+        - manual: '100-08'
+          chapter: '3'
+          title: 'Medicare Program Integrity Manual, Chapter 3, Verifying Potential Errors'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/pim83c03.pdf'
+        - manual: '100-04'
+          chapter: '22'
+          title: 'Medicare Claims Processing Manual, Chapter 22, Remittance Advice'
+          url: 'https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c22.pdf'
+          note: 'group codes 60.1, CARC 60.2, RARC 60.3; added for the denial code glosses (D14)'
+  - id: cms_mln
+    name: MLN Matters articles and Transmittals index
+    publisher: CMS
+    kind: html
+    cadence_days: 7
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/regulations-guidance/transmittals'
+    config:
+      backfill_years: 3
+      sitemap_url: 'https://www.cms.gov/sitemap.xml'
+      max_sitemap_pages: 80
+  - id: cms_telehealth_list
+    name: List of Medicare Telehealth Services
+    publisher: CMS
+    kind: download
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coverage/telehealth/list-services'
+  - id: cms_therapy
+    name: Therapy Services page, KX threshold amounts
+    publisher: CMS
+    kind: html
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://www.cms.gov/medicare/coding-billing/therapy-services'
+  - id: fedreg
+    name: Federal Register, agency CMS rules
+    publisher: Federal Register
+    kind: download
+    cadence_days: 1
+    tier: 1
+    license_required: false
+    enabled: true
+    base_url: 'https://www.federalregister.gov/api/v1/documents.json'
+    config:
+      backfill_from: '2019-01-01'
+      full_text_from: '2023-01-01'
+  - id: oig_workplan
+    name: OIG Work Plan active items
+    publisher: HHS OIG
+    kind: html
+    cadence_days: 30
+    tier: 2
+    license_required: false
+    enabled: true
+    base_url: 'https://oig.hhs.gov/reports/work-plan/browse-work-plan-projects/'
+    config:
+      export_url: 'https://oig.hhs.gov/workplan/export-workplan/'
+  - id: mac_sites
+    name: MAC provider education pages
+    publisher: MACs
+    kind: html
+    cadence_days: 7
+    tier: 3
+    license_required: false
+    enabled: false # enabled in Phase 4 with the confirmed MAC footprint
+    base_url: ''
+  - id: payer_policies
+    name: Payer reimbursement and medical policies
+    publisher: configured payers
+    kind: upload
+    cadence_days: 0
+    tier: 4
+    license_required: false
+    enabled: true # Phase 4 lead uploads; automated couriers blocked by payer terms of use (D16)
+    base_url: ''
+  - id: client_contracts
+    name: Client payer contracts and fee schedules
+    publisher: internal upload
+    kind: upload
+    cadence_days: 0
+    tier: 5
+    license_required: false
+    enabled: true # Phase 4
+    base_url: ''
+  - id: payer_call_notes
+    name: Structured payer call notes
+    publisher: internal
+    kind: upload
+    cadence_days: 0
+    tier: 6
+    license_required: false
+    enabled: true # Phase 4
+    base_url: ''
+  - id: remit_behavior
+    name: Aggregated remittance behavior
+    publisher: internal import
+    kind: import
+    cadence_days: 30
+    tier: 7
+    license_required: false
+    enabled: true # Phase 4 import pipeline
+    base_url: ''
+  - id: ama_cpt
+    name: CPT Standard Data File
+    publisher: AMA
+    kind: download
+    cadence_days: 365
+    tier: 2
+    license_required: true # gated by CPT_LICENSE_MODE
+    enabled: false # enabled in Phase 7 when the AMA agreement is amended
+    base_url: ''
+  - id: x12_carc_rarc
+    name: CARC and RARC code lists
+    publisher: X12
+    kind: html
+    cadence_days: 120
+    tier: 2
+    license_required: true # X12 terms of use prohibit scraping and AI use; see DECISIONS.md D10
+    enabled: false # user declined the license 2026-08-25; superseded by the D14 gloss workaround
+    base_url: 'https://x12.org/codes/claim-adjustment-reason-codes'
+  - id: cms_remit_guides
+    name: CMS remittance advice guidance documents
+    publisher: CMS
+    kind: pdf
+    cadence_days: 91
+    tier: 2
+    license_required: false
+    enabled: true # D14 gloss grounding; courier added in Phase 4 M4.4
+    base_url: 'https://www.cms.gov/medicare/coding-billing/electronic-billing/health-care-payment-remittance-advice'
+    config:
+      documents:
+        - title: 'MLN booklet ICN905367, Remittance Advice Resources and FAQs'
+          url: 'https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/icn905367textonly.pdf'
+        - title: 'CCIIO guidance, Required RARCs under the CAA and the No Surprises Act'
+          url: 'https://www.cms.gov/cciio/programs-and-initiatives/other-insurance-protections/caa-nsa-rarc-codes.pdf'
+          note: 'footnote 5 reproduces RARC text with X12 and WPC permission for that prescribed purpose; quote as cited excerpts only'

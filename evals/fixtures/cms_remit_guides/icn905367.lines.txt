@@ -1,0 +1,120 @@
+Remittance Advice Resources and FAQs
+TABLE OF CONTENTS
+The Centers for Medicare & Medicaid Services (CMS) prepared this Remittance Advice (RA) booklet for
+Medicare Providers to access RA information. This booklet contains information about RAs and allows different
+provider types to navigate easily to relevant topics. To go directly to a section, click on the topic below .
+General Information ..................................................................................................................................3
+Reading an Institutional RA .................................................................................................................7
+Reading a Professional RA ..................................................................................................................9
+Frequently Asked Questions (FAQs) .............................................................................................13
+Resources/Embedded URL Table and Disclaimer ..................................................................15
+Target Audience: Providers, Physicians, Suppliers, and
+Medicare Fee-For-Service Program (also known as Original Medicare)
+The Hyperlink Table, at the end of this document, provides the complete URL for each hyperlink.
+Page 1 of 15
+Remittance Advice Resources and FAQs MLN Booklet
+GENERAL INFORMATION
+MACs send claim adjudication and payment information to providers, suppliers, and billers using an Electronic
+Remittance Advice (ERA) or a Standard Paper Remittance (SPR) along with payments. These RAs give
+explanations and guidance as to whether Medicare made a payment on a claim and if the payment differs from
+what the provider submitted. The ERA or SPR conveys itemized information for each claim and/or service line
+enabling the provider to associate the adjudication decisions with those submitted claims/lines. The ERA or
+SPR, reports the reason and the value of each adjustment. Adjustments can happen at the claim, service line,
+or provider level.
+Institutional and Professional RAs
+Part A, Institutional Providers, submit claims to Medicare Administrative Contractors (MACs). After the MACs
+process these claims, they generate an Institutional Remittance Advice (RA) as a companion to the
+payment or as an explanation of no payment.
+Part B, Professional Providers, submit claims to MACs. After the MACs process the claims, they generate a
+Professional RA as a companion to the payment or as an explanation of no payment.
+An ERA reports the adjustment reasons using standard codes. For any claim or service-line level adjustment,
+Medicare may use three sets of codes:
+1. Claim Adjustment Group Code (Group Code)
+2. Claim Adjustment Reason Code (CARC)
+3. Remittance Advice Remark Code (RARC)
+Group Codes assign financial responsibility for the unpaid portion of the claim/service-line balance. A
+Contractual Obligation (CO) Group Code assigns responsibility to the provider and Patient Responsibility
+(PR) Group Code assigns responsibility to the patient. Providers may bill Medicare beneficiaries for an
+unpaid portion only when an adjustment shows Group Code PR. CARCs provide an overall explanation for
+the financial adjustment and RARCs supplement the CARCs with the addition of a more specific explanation.
+While providers get an ERA or SPR, Medicare beneficiaries get a Medicare Summary Notice (MSN) indicating
+how much financial responsibility the beneficiary incurs because of the claim.
+At the provider level, adjustments usually do not relate to any specific claim or service-line in the RA, and
+Provider Level Balance (PLB) reason codes explain the reason for the adjustment. Some examples of provider
+level adjustment are:
+1. An increase in payment for interest due as a result of the late payment of a clean claim by Medicare
+2. A deduction from payment as a result of a prior overpayment
+3. An increase in payment for any provider incentive plan
+Note: Medicare issues one check or Electronic Funds Transfer (EFT) when payment is due, representing all
+benefits due from Medicare for the claims itemized in an ERA or SPR.
+Page 2 of 15
+Remittance Advice Resources and FAQs MLN Booklet
+As a Payee you will use RA information as inputs to patient accounting system/Accounts Receivable (A/R) and
+general ledger applications. In addition, RA information may indicate a need for you to resubmit a claim with
+corrected information. RA information also indicates whether you can appeal the payment.
+ERA vs SPR
+You may get an RA from Medicare as an ERA or as an SPR. Although the information on ERAs and SPRs is
+similar, the two formats are different. The ERA offers some data and administrative efficiencies not available
+in an SPR. Additionally, an ERA can have more information than an SPR. For example, an SPR has two
+basic page layouts: the Claims Page and the Summary Page. However, an ERA has four page layouts: the
+All Claims Screen, Single Claim Screen, Bill Type Summary Screen, and Provider Payment Screen. ERAs
+can also be manipulated electronically into a variety of report formats. The Health Insurance Portability and
+Accountability Act (HIPAA) does not cover the SPR, so service-line information may not appear on some
+Institutional SPRs like it does on an ERA. The SPR shows the same lines, fields, and codes that are on the
+ERA, which helps you to make sure that the 835 balances at three levels (transaction, claim, and service line).
+Health care professionals who are active in the Medicare Program and submit claims, may get an ERA. ERA
+is an outbound Electronic Data Interchange (EDI) transaction from the payer that enables you to get payment
+information in an electronic file format. If you have software capability in place in your system, your MAC can
+automatically post an ERA file created by Medicare to your accounts receivable system. Once you have the
+ERA in place, the payment posting process is more efficient and accurate.
+There are advantages to using the ERA versus the SPR. Using an ERA saves time and increases productivity
+by providing electronic payment adjustment information that is portable, reusable, retrievable, and storable.
+Trading partners can exchange an ERA with much greater ease than an SPR ERA advantages include:
+• Faster communication and payment notification
+• Faster account reconciliation through electronic posting
+• Automation of follow-up action
+• Generation of less paper
+• Lower operating costs
+• Ability to create various reports
+• Ability to search for information on claims
+• Ability to export data to other applications
+• More detailed information
+• Access to data in a variety of formats through free software supported by Medicare
+The amount payable for each claim and/or service line as well as each adjustment applied to either can be
+automatically posted to accounting or billing applications from an ERA, eliminating the time and cost for staff
+to post this information manually from an SPR. ERAs generally contain more detailed information than SPRs.
+Also, ERAs may enable providers to automate follow-up actions after getting an RA.
+Page 3 of 15
+Remittance Advice Resources and FAQs MLN Booklet
+If you submit your claims on paper or if you send claims electronically and do not have your own submitter
+number but want to get ERAs directly, you must complete the Separate Remittance Agreement form. You
+may allow a billing service or clearinghouse to get the ERA files on your behalf by completing the Provider/
+Submitter Agreement form. If you have questions, your MACs may have more information. Find their website at
+http://go.cms.gov/MAC-website-list .
+Note: MACs do not send SPRs if you have been getting ERAs for more than 31 days (Institutional
+Providers) and 45 days (Professional Providers) respectively. If you submit claims through a billing
+service or clearinghouse or a submitter/sender ID that is currently receiving ERAs, you will no longer get
+your SPR effective with the date of completion of the ERA setup.
+Information in the ERA
+The basic field, i.e., data element, types in the RA can be alphabetic, numeric, or alphanumeric. The HIPAA-
+compliant Accredited Standards Committee (ASC) X12N 835 format standards define data elements that
+appear on all Medicare ERAs as Required or Situational .
+• The required fields are mandatory for MACs to include in the ERA
+• Situational fields depends on data content and business context (Medicare requirements), and
+providers use them if the situation applies
+If your MAC bases payment on a procedure code, i.e., Healthcare Common Procedure Coding System/Current
+Procedural Terminology (HCPCS/CPT) code, that is different from the procedure code you submitted on the
+claim, (for example, your MAC revised the HCPCS/CPT code during processing), both procedure code fields
+appear in the 835.
+If there is no difference between the adjudicated procedure code (required field) and the submitted procedure
+code (situational field), only the adjudicated procedure code data element appears in the 835. The submitted
+code data element does not appear because the situation does not apply.
+Enrolling in ERA
+Directions for enrolling in ERA are available on your MAC’s website. Find their website at http://go.cms.gov/
+MAC-website-list .
+Free Medicare ERA Software
+Medicare provides free downloadable translator software that can both read ERAs as well as print the
+equivalent of an SPR. PC-Print is available for Institutional Providers , and Medicare Remit Easy Print
+(MREP) is available for Professional Providers . These software products enable you to store, view, and
+print RAs when you need them, thus eliminating the need to request or await mail delivery of SPRs. The
+software also enables you to export special reports to Excel and other application programs you may have.

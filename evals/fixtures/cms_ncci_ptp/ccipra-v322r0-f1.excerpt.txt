@@ -1,0 +1,161 @@
+CPT only copyright 2025 American Medical Association.  All rights reserved.						
+Column1/Column2 Edits						
+Column 1	Column 2	*=in existence	Effective	Deletion	Modifier	PTP Edit Rationale
+		prior to 1996	Date	Date	0=not allowed	
+				*=no data	1=allowed	
+					9=not applicable	
+0001A	0591T		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	0592T		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	0593T		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	36591		20220101	20231231	0	CPT Manual or CMS manual coding instruction
+0001A	36592		20220101	20231231	0	CPT Manual or CMS manual coding instruction
+0001A	90473		20220101	20220101	9	CPT Manual or CMS manual coding instruction
+0001A	96160		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	96161		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	96523		20220101	20231231	0	CPT Manual or CMS manual coding instruction
+0001A	99202		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99203		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99204		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99205		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99211		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99212		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99213		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99214		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99215		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99241		20220101	20221231	1	CPT Manual or CMS manual coding instruction
+0001A	99242		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99243		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99244		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99245		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99281		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99282		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99283		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99284		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99285		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99381		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99382		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99383		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99384		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99385		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99386		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99387		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99391		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99392		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99393		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99394		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99395		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99396		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99397		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99401		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99402		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99403		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99404		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99406		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99407		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99408		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99409		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99411		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99412		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99483		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	99497		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	G0008		20220101	20220101	9	Mutually exclusive procedures
+0001A	G0009		20220101	20220101	9	Mutually exclusive procedures
+0001A	G0010		20220101	20220101	9	Mutually exclusive procedures
+0001A	G0442		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	G0443		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	G0444		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	G0445		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001A	G0463		20220101	20231231	1	CPT Manual or CMS manual coding instruction
+0001M	36591		20151001	20151001	9	CPT Manual or CMS manual coding instruction
+0001M	36592		20151001	20151001	9	CPT Manual or CMS manual coding instruction
+0001M	80050		20170401	20181231	0	Misuse of Column Two code with Column One code
+0001M	80053		20170401	20181231	0	Misuse of Column Two code with Column One code
+0001M	80076		20170401	20181231	0	Misuse of Column Two code with Column One code
+0001M	80500		20170401	20181231	1	Misuse of Column Two code with Column One code
+0001M	80502		20170401	20181231	1	Misuse of Column Two code with Column One code
+0001M	82172		20170401	20181231	1	CPT Manual or CMS manual coding instruction
+0001M	82247		20170401	20181231	1	CPT Manual or CMS manual coding instruction
+0001M	82977		20170401	20181231	0	CPT Manual or CMS manual coding instruction
+0001M	83010		20170401	20181231	0	CPT Manual or CMS manual coding instruction
+0001M	84460		20170401	20181231	0	CPT Manual or CMS manual coding instruction
+0001T	0002T		20030101	20040331	1	Mutually exclusive procedures
+0001T	34800		20030101	20041231	1	Mutually exclusive procedures
+0001T	34802		20030101	20041231	1	Mutually exclusive procedures
+0001T	34804		20030101	20041231	1	Mutually exclusive procedures
+0001T	36000		20021001	20041231	1	Standards of medical/surgical practice
+0001T	36410		20021001	20041231	1	Standards of medical/surgical practice
+0001T	90780		20021001	20041231	1	Standards of medical/surgical practice
+0001U	0028U		20180701	20180930	1	Misuse of Column Two code with Column One code
+0001U	0029U		20180701	20260630	1	Misuse of Column Two code with Column One code
+0001U	0030U		20180701	*	1	Misuse of Column Two code with Column One code
+0001U	0034U		20180701	*	1	Misuse of Column Two code with Column One code
+0001U	0046U		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	0049U		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	0053U		20190101	20230630	1	Misuse of Column Two code with Column One code
+0001U	0070U		20190401	*	1	Misuse of Column Two code with Column One code
+0001U	0071U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0086U		20200101	*	1	Misuse of Column Two code with Column One code
+0001U	0111U		20200101	*	1	Misuse of Column Two code with Column One code
+0001U	0128U		20200101	20200630	1	Misuse of Column Two code with Column One code
+0001U	0136U		20200101	*	1	Misuse of Column Two code with Column One code
+0001U	0137U		20200101	*	1	Misuse of Column Two code with Column One code
+0001U	0138U		20200101	*	1	Misuse of Column Two code with Column One code
+0001U	0140U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0141U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0142U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0155U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0156U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0157U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0158U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0159U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0160U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0161U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0169U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0177U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0212U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0213U		20210101	*	1	Misuse of Column Two code with Column One code
+0001U	0229U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0230U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0231U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0232U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0233U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0234U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0235U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0236U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0252U		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	0286U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0317U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0318U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0321U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0336U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0341U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0347U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0348U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0349U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0350U		20230101	*	1	Misuse of Column Two code with Column One code
+0001U	0417U		20250101	*	1	Misuse of Column Two code with Column One code
+0001U	0428U		20241001	20241231	1	Misuse of Column Two code with Column One code
+0001U	0438U		20250101	*	1	Misuse of Column Two code with Column One code
+0001U	80500		20180101	20211231	1	Misuse of Column Two code with Column One code
+0001U	80502		20180101	20211231	1	Misuse of Column Two code with Column One code
+0001U	80503		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	80504		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	80505		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	80506		20220101	*	1	Misuse of Column Two code with Column One code
+0001U	81105		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81106		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81107		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81108		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81109		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81110		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81111		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81112		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81120		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81121		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81161		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81162		20180101	*	1	Misuse of Column Two code with Column One code
+0001U	81163		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	81164		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	81165		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	81166		20190101	*	1	Misuse of Column Two code with Column One code
+0001U	81167		20190101	*	1	Misuse of Column T

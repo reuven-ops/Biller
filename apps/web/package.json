@@ -1,0 +1,22 @@
+{
+  "name": "@advisor/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@advisor/core": "workspace:*",
+    "@advisor/db": "workspace:*",
+    "@advisor/ingest": "workspace:*"
+  },
+  "main": "src/index.ts",
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/pg": "^8.15.4",
+    "adm-zip": "^0.6.0",
+    "pg": "^8.16.3"
+  }
+}
